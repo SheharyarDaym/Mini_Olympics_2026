@@ -1,12 +1,12 @@
 import { sql } from '@/lib/db';
 
-export type AdminRole = 'super_admin' | 'registration_admin' | 'inventory_admin' | 'hoc_admin' | 'finance_admin';
+export type AdminRole = 'super_admin' | 'registration_admin' | 'inventory_admin' | 'hoc_admin';
 
 export type AdminSession = {
   sessionToken: string;
   adminUserId: string | null;
   username: string | null;
-  role: AdminRole;
+  role: AdminRole; // admin, registration_admin, inventory_admin, hoc_admin
   expiresAt: string | null;
 };
 
@@ -16,7 +16,6 @@ export const rolePermissions: Record<AdminRole, string[]> = {
   registration_admin: ['/admin/registrations'],
   inventory_admin: ['/admin/inventory'],
   hoc_admin: ['/admin/super', '/admin/hoc'],
-  finance_admin: ['/admin/finance'],
 };
 
 // Get the default redirect page for each role
@@ -25,7 +24,6 @@ export const roleDefaultPage: Record<AdminRole, string> = {
   registration_admin: '/admin/registrations',
   inventory_admin: '/admin/inventory',
   hoc_admin: '/admin/hoc',
-  finance_admin: '/admin/finance',
 };
 
 /**
