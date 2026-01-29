@@ -155,6 +155,7 @@ export async function POST(request: NextRequest) {
       registration_admin: '/admin/registrations',
       inventory_admin: '/admin/inventory',
       hoc_admin: '/admin/hoc',
+      finance_admin: '/admin/finance',
     };
 
     const redirectTo = roleDefaultPage[userRole] || '/admin/dashboard';

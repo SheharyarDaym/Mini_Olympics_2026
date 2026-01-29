@@ -68,7 +68,7 @@ export default function AdminSidebar({ userRole, username, onLogout }: AdminSide
       label: 'Finance',
       href: '/admin/finance',
       icon: <Wallet className="h-5 w-5" />,
-      roles: ['super_admin'],
+      roles: ['super_admin', 'finance_admin'],
     },
     {
       label: 'Sport Groups',
@@ -104,6 +104,7 @@ export default function AdminSidebar({ userRole, username, onLogout }: AdminSide
       registration_admin: { label: 'Registration', color: 'from-blue-500 to-indigo-500' },
       inventory_admin: { label: 'Inventory', color: 'from-amber-500 to-orange-500' },
       hoc_admin: { label: 'HOC', color: 'from-emerald-500 to-teal-500' },
+      finance_admin: { label: 'Finance', color: 'from-green-500 to-emerald-500' },
     };
     return badges[role] || { label: 'Staff', color: 'from-slate-400 to-slate-500' };
   };

@@ -10,6 +10,7 @@ const rolePermissions: Record<string, string[]> = {
   registration_admin: ['/admin/registrations'],
   inventory_admin: ['/admin/inventory'],
   hoc_admin: ['/admin/super', '/admin/hoc'],
+  finance_admin: ['/admin/finance'],
 };
 
 // Get the default redirect page for each role
@@ -18,6 +19,7 @@ const roleDefaultPage: Record<string, string> = {
   registration_admin: '/admin/registrations',
   inventory_admin: '/admin/inventory',
   hoc_admin: '/admin/hoc',
+  finance_admin: '/admin/finance',
 };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -42,17 +44,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       .then((res) => res.json())
       .then((data) => {
         if (data.authenticated) {
+          // Legacy sessions may return role 'admin' when admin_sessions has no role column
           const role = data.role || 'super_admin';
-          setUserRole(role);
+          const effectiveRole = role === 'admin' ? 'super_admin' : role;
+          setUserRole(effectiveRole);
           setUsername(data.username || 'Admin');
-          
-          // Check if user has access to current page
-          const allowedPages = rolePermissions[role] || [];
+
+          const allowedPages = rolePermissions[effectiveRole] || [];
           const hasAccess = allowedPages.some(page => pathname.startsWith(page));
-          
+
           if (!hasAccess) {
-            // Redirect to their default page
-            const defaultPage = roleDefaultPage[role] || '/admin/dashboard';
+            const defaultPage = roleDefaultPage[effectiveRole] || '/admin/dashboard';
             router.push(defaultPage);
             setAccessDenied(true);
           } else {
