@@ -68,7 +68,16 @@ function createSqlWrapper(): SqlFunction {
   return sqlTag;
 }
 
-export const sql: SqlFunction = createSqlWrapper();
+// Export with completely explicit type that overrides Neon's return types
+// This ensures TypeScript always sees Promise<any[]> instead of the complex union type
+const sqlWrapper = createSqlWrapper();
+
+// Use a type assertion that completely replaces the inferred type
+export const sql = sqlWrapper as unknown as {
+  (strings: TemplateStringsArray, ...values: any[]): Promise<any[]>;
+  (query: string, params?: any[]): Promise<any[]>;
+  unsafe?: (query: string, params?: any[]) => Promise<any[]>;
+};
 
 // Helper function to execute queries
 export async function query<T = any>(query: string, params?: any[]): Promise<T[]> {
