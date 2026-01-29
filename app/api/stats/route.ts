@@ -8,23 +8,23 @@ export const revalidate = 0;
 export async function GET(request: NextRequest) {
   try {
     // Get total registrations
-    const totalResult = await sql`SELECT COUNT(*) as count FROM registrations`;
+    const totalResult = await sql`SELECT COUNT(*) as count FROM registrations` as any[];
     const total = Number(totalResult[0]?.count) || 0;
 
     // Get paid registrations
-    const paidResult = await sql`SELECT COUNT(*) as count FROM registrations WHERE status = 'paid'`;
+    const paidResult = await sql`SELECT COUNT(*) as count FROM registrations WHERE status = 'paid'` as any[];
     const paid = Number(paidResult[0]?.count) || 0;
 
     // Get pending online
-    const pendingOnlineResult = await sql`SELECT COUNT(*) as count FROM registrations WHERE status = 'pending_online'`;
+    const pendingOnlineResult = await sql`SELECT COUNT(*) as count FROM registrations WHERE status = 'pending_online'` as any[];
     const pendingOnline = Number(pendingOnlineResult[0]?.count) || 0;
 
     // Get pending cash
-    const pendingCashResult = await sql`SELECT COUNT(*) as count FROM registrations WHERE status = 'pending_cash'`;
+    const pendingCashResult = await sql`SELECT COUNT(*) as count FROM registrations WHERE status = 'pending_cash'` as any[];
     const pendingCash = Number(pendingCashResult[0]?.count) || 0;
 
     // Get rejected
-    const rejectedResult = await sql`SELECT COUNT(*) as count FROM registrations WHERE status = 'rejected'`;
+    const rejectedResult = await sql`SELECT COUNT(*) as count FROM registrations WHERE status = 'rejected'` as any[];
     const rejected = Number(rejectedResult[0]?.count) || 0;
 
     return NextResponse.json({

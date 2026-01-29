@@ -4,7 +4,7 @@ import { sql } from '@/lib/db';
 // GET - Get esports settings
 export async function GET(request: NextRequest) {
   try {
-    let result = await sql`SELECT * FROM esports_settings WHERE id = '1'`;
+    let result = await sql`SELECT * FROM esports_settings WHERE id = '1'` as any[];
     let settings = result[0] || null;
 
     // If no settings exist, create default
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
         INSERT INTO esports_settings (id, is_open, announcement)
         VALUES ('1', true, 'Esports matches will be held in OC on scheduled dates.')
       `;
-      result = await sql`SELECT * FROM esports_settings WHERE id = '1'`;
+      result = await sql`SELECT * FROM esports_settings WHERE id = '1'` as any[];
       settings = result[0] || null;
     }
 
@@ -44,7 +44,7 @@ export async function PATCH(request: NextRequest) {
       WHERE id = '1'
     `;
 
-    const result = await sql`SELECT * FROM esports_settings WHERE id = '1'`;
+    const result = await sql`SELECT * FROM esports_settings WHERE id = '1'` as any[];
     const updated = result[0] || null;
 
     return NextResponse.json({ success: true, data: updated });

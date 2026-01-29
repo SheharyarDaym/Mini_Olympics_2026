@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       SELECT id, team_name FROM registrations 
       WHERE LOWER(team_name) = LOWER(${teamName})
       LIMIT 1
-    `;
+    ` as any[];
     
     if (existingTeam && existingTeam.length > 0) {
       return NextResponse.json(
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
         ${screenshotUrl || null}, ${status}, NOW(), NOW()
       )
       RETURNING registration_number
-    `;
+    ` as any[];
 
     const registrationNumber = result[0]?.registration_number;
 

@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       SELECT id, team_name FROM registrations 
       WHERE LOWER(team_name) = LOWER(${teamName.trim()})
       LIMIT 1
-    `;
+    ` as any[];
 
     if (existingTeam && existingTeam.length > 0) {
       return NextResponse.json({

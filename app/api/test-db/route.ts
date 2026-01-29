@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
         WHERE table_schema = 'public' 
         AND table_name = 'registrations'
       );
-    `;
+    ` as any[];
     
     if (!tableCheck[0]?.exists) {
       return NextResponse.json({
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       FROM information_schema.columns
       WHERE table_name = 'registrations'
       ORDER BY ordinal_position;
-    `;
+    ` as any[];
     
     // Check sequence
     const sequenceCheck = await sql`
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
         SELECT FROM pg_sequences 
         WHERE sequencename = 'registration_number_seq'
       );
-    `;
+    ` as any[];
     
     return NextResponse.json({
       success: true,

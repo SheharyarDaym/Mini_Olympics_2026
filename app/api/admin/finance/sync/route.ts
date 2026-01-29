@@ -27,12 +27,12 @@ export async function POST(request: NextRequest) {
       FROM registrations r
       LEFT JOIN finance_records f ON f.reference_id = r.id AND f.reference_type = 'registration'
       WHERE r.status = 'paid' AND f.id IS NULL
-    `;
+    ` as any[];
 
     let syncedCount = 0;
     const errors: string[] = [];
 
-    for (const reg of paidRegistrations as any[]) {
+    for (const reg of paidRegistrations) {
       try {
         const financeId = uuidv4();
         const finalAmount = Number(reg.total_amount) - (Number(reg.discount) || 0);
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       success: true, 
       synced: syncedCount, 
-      total: paidRegistrations.length,
+      total: Array.isArray(paidRegistrations) ? paidRegistrations.length : 0,
       errors: errors.length > 0 ? errors : undefined
     });
   } catch (error: any) {

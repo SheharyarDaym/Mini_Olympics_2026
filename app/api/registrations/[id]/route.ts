@@ -11,7 +11,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const result = await sql`SELECT * FROM registrations WHERE id = ${params.id}`;
+    const result = await sql`SELECT * FROM registrations WHERE id = ${params.id}` as any[];
     const registration = result[0] || null;
 
     if (!registration) {
@@ -51,7 +51,7 @@ export async function PATCH(
     const sessionResult = await sql`
       SELECT * FROM admin_sessions 
       WHERE session_token = ${sessionToken} AND expires_at > NOW()
-    `;
+    ` as any[];
     
     if (!sessionResult || sessionResult.length === 0) {
       return NextResponse.json(
@@ -72,7 +72,7 @@ export async function PATCH(
     }
 
     // First, fetch the current registration to preserve existing data
-    const currentResult = await sql`SELECT * FROM registrations WHERE id = ${params.id}`;
+    const currentResult = await sql`SELECT * FROM registrations WHERE id = ${params.id}` as any[];
     if (!currentResult || currentResult.length === 0) {
       return NextResponse.json(
         { error: 'Registration not found' },
@@ -134,7 +134,7 @@ export async function PATCH(
     }
 
     // Fetch updated registration to verify the update
-    const result = await sql`SELECT * FROM registrations WHERE id = ${params.id}`;
+    const result = await sql`SELECT * FROM registrations WHERE id = ${params.id}` as any[];
     const updated = result[0] || null;
 
     if (!updated) {
@@ -155,7 +155,7 @@ export async function PATCH(
         const existingFinance = await sql`
           SELECT id FROM finance_records 
           WHERE reference_id = ${params.id} AND reference_type = 'registration'
-        `;
+        ` as any[];
         
         if (!existingFinance || existingFinance.length === 0) {
           await sql`

@@ -57,14 +57,14 @@ export async function GET(request: NextRequest) {
 
     query += ' ORDER BY r.record_date DESC, r.created_at DESC';
 
-    const records = await sql(query, params);
+    const records = await sql(query, params) as any[];
 
     // Calculate summary
     const allRecords = await sql`
       SELECT record_type, SUM(amount) as total
       FROM finance_records
       GROUP BY record_type
-    `;
+    ` as any[];
 
     const summary = {
       totalIncome: 0,
@@ -87,9 +87,9 @@ export async function GET(request: NextRequest) {
         COALESCE(SUM(CASE WHEN status = 'paid' THEN total_amount - COALESCE(discount, 0) END), 0) as total_collected,
         COALESCE(SUM(CASE WHEN status IN ('pending_cash', 'pending_online') THEN total_amount - COALESCE(discount, 0) END), 0) as pending_amount
       FROM registrations
-    `;
+    ` as any[];
 
-    const registrationStats = regStats[0] ? {
+    const registrationStats = regStats && regStats[0] ? {
       totalRegistrations: Number(regStats[0].total_registrations) || 0,
       verifiedRegistrations: Number(regStats[0].verified_registrations) || 0,
       pendingRegistrations: Number(regStats[0].pending_registrations) || 0,

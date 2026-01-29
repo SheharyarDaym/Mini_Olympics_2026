@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
       FROM registrations
       WHERE id = ${id} AND slip_id = ${slipId}
       LIMIT 1
-    `;
+    ` as any[];
 
     const row: any = result?.[0] || null;
     if (!row) {
