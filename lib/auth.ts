@@ -48,7 +48,7 @@ export async function getAdminSession(sessionToken: string | undefined): Promise
       LEFT JOIN admin_users u ON u.id = s.admin_user_id
       WHERE s.session_token = ${sessionToken} AND s.expires_at > NOW()
       LIMIT 1
-    ` as any[];
+    `;
   } catch (err: any) {
     const code = err?.code ? String(err.code) : '';
     // 42703 = undefined_column
@@ -60,7 +60,7 @@ export async function getAdminSession(sessionToken: string | undefined): Promise
       FROM admin_sessions
       WHERE session_token = ${sessionToken} AND expires_at > NOW()
       LIMIT 1
-    ` as any[];
+    `;
   }
 
   const row: any = result?.[0] || null;
