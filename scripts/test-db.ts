@@ -5,39 +5,39 @@ async function testDatabase() {
     console.log('Testing database connection...');
     
     // Check if registrations table exists
-    const tableCheck = await sql`
+    const tableCheck = (await sql`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
         WHERE table_schema = 'public' 
         AND table_name = 'registrations'
       );
-    `;
+    `) as any[];
     console.log('Registrations table exists:', tableCheck[0]?.exists);
     
     // Check table structure
-    const columns = await sql`
+    const columns = (await sql`
       SELECT column_name, data_type, is_nullable
       FROM information_schema.columns
       WHERE table_name = 'registrations'
       ORDER BY ordinal_position;
-    `;
+    `) as any[];
     console.log('\nTable columns:');
     columns.forEach((col: any) => {
       console.log(`  - ${col.column_name}: ${col.data_type} (nullable: ${col.is_nullable})`);
     });
     
     // Check if sequence exists
-    const sequenceCheck = await sql`
+    const sequenceCheck = (await sql`
       SELECT EXISTS (
         SELECT FROM pg_sequences 
         WHERE sequencename = 'registration_number_seq'
       );
-    `;
+    `) as any[];
     console.log('\nSequence exists:', sequenceCheck[0]?.exists);
     
     // Test insert
     console.log('\nTesting insert...');
-    const testResult = await sql`
+    const testResult = (await sql`
       INSERT INTO registrations (
         id, email, name, roll_number, contact_number, alternative_contact_number,
         gender, selected_games, total_amount, payment_method, slip_id, transaction_id,
@@ -48,7 +48,7 @@ async function testDatabase() {
         'WLG25-TEST-1234', null, null, 'pending_online', NOW(), NOW()
       )
       RETURNING registration_number, id;
-    `;
+    `) as any[];
     console.log('Test insert successful:', testResult[0]);
     
     // Clean up test data

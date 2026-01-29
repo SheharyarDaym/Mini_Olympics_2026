@@ -4,13 +4,13 @@ import { sql } from '@/lib/db';
 export async function GET(request: NextRequest) {
   try {
     // Check if table exists
-    const tableCheck = await sql`
+    const tableCheck = (await sql`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
         WHERE table_schema = 'public' 
         AND table_name = 'registrations'
       );
-    ` as any[];
+    `) as any[];
     
     if (!tableCheck[0]?.exists) {
       return NextResponse.json({
