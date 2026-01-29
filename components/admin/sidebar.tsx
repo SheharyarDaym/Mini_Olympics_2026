@@ -68,7 +68,7 @@ export default function AdminSidebar({ userRole, username, onLogout }: AdminSide
       label: 'Finance',
       href: '/admin/finance',
       icon: <Wallet className="h-5 w-5" />,
-      roles: ['super_admin'],
+      roles: ['super_admin', 'finance_admin'],
     },
     {
       label: 'Sport Groups',

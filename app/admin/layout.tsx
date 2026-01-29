@@ -10,6 +10,7 @@ const rolePermissions: Record<string, string[]> = {
   registration_admin: ['/admin/registrations'],
   inventory_admin: ['/admin/inventory'],
   hoc_admin: ['/admin/super', '/admin/hoc'],
+  finance_admin: ['/admin/finance'],
 };
 
 // Get the default redirect page for each role
@@ -18,6 +19,7 @@ const roleDefaultPage: Record<string, string> = {
   registration_admin: '/admin/registrations',
   inventory_admin: '/admin/inventory',
   hoc_admin: '/admin/hoc',
+  finance_admin: '/admin/finance',
 };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
