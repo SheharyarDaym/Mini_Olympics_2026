@@ -101,7 +101,7 @@ export default function Home() {
             <h1 className="text-4xl sm:text-6xl md:text-8xl font-black mb-6 text-white tracking-tight">
               <span className="bg-gradient-to-r from-amber-300 via-orange-400 to-rose-400 bg-clip-text text-transparent">FCIT</span>
               {' '}
-              <span className="text-white">Sports</span>
+              <span className="text-white">Sports OC</span>
             </h1>
             <p className="text-xl sm:text-2xl md:text-3xl text-blue-200 mb-4 font-light">
               21+ Games • One Championship • Unlimited Glory
