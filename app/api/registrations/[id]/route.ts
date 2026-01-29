@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
+import { cookies } from 'next/headers';
+
+export const dynamic = 'force-dynamic';
 
 // GET - Get single registration
 export async function GET(
@@ -35,7 +38,8 @@ export async function PATCH(
 ) {
   try {
     // Verify admin authentication
-    const sessionToken = request.cookies.get('admin_session')?.value;
+    const cookieStore = await cookies();
+    const sessionToken = cookieStore.get('admin_session')?.value;
     if (!sessionToken) {
       return NextResponse.json(
         { error: 'Unauthorized - Admin authentication required' },

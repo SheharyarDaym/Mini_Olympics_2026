@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import { cookies } from 'next/headers';
+
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    const sessionToken = request.cookies.get('admin_session')?.value;
+    const cookieStore = await cookies();
+    const sessionToken = cookieStore.get('admin_session')?.value;
 
     if (sessionToken) {
       // Delete session from database
