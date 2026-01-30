@@ -45,6 +45,7 @@ import {
   Check,
 } from 'lucide-react';
 
+type TeamMember = { name: string; rollNumber: string; contactNumber: string };
 type Registration = {
   id: string;
   registration_number: number | null;
@@ -55,6 +56,7 @@ type Registration = {
   alternative_contact_number: string | null;
   gender: string;
   selected_games: string[] | string;
+  team_members?: string | Record<string, TeamMember[]> | null;
   total_amount: number;
   discount: number | null;
   coupon_code?: string | null;
@@ -687,6 +689,41 @@ export default function RegistrationsPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Team Members for team games */}
+              {(() => {
+                const selectedGamesList = Array.isArray(selectedRegistration.selected_games) ? selectedRegistration.selected_games : JSON.parse(selectedRegistration.selected_games || '[]');
+                let teamMembersMap: Record<string, TeamMember[]> = {};
+                try {
+                  const raw = selectedRegistration.team_members;
+                  if (raw) {
+                    teamMembersMap = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                  }
+                } catch (_) {}
+                const gamesWithTeams = selectedGamesList.filter((g: string) => Array.isArray(teamMembersMap[g]) && teamMembersMap[g].length > 0);
+                if (gamesWithTeams.length === 0) return null;
+                return (
+                  <div className="bg-blue-50 rounded-xl p-4">
+                    <h3 className="font-semibold mb-3 flex items-center gap-2"><Users className="h-4 w-4 text-blue-600" /> Team Members (Team Games)</h3>
+                    <div className="space-y-4">
+                      {gamesWithTeams.map((gameName: string) => (
+                        <div key={gameName} className="border border-blue-200 rounded-lg p-3 bg-white/60">
+                          <p className="font-medium text-blue-900 mb-2">{gameName}</p>
+                          <div className="space-y-2">
+                            {(teamMembersMap[gameName] || []).map((member: TeamMember, idx: number) => (
+                              <div key={idx} className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-700">
+                                <span><span className="text-slate-500">Name:</span> {member.name || '—'}</span>
+                                <span><span className="text-slate-500">Roll:</span> {member.rollNumber || '—'}</span>
+                                <span><span className="text-slate-500">Contact:</span> {member.contactNumber || '—'}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div className="bg-amber-50 rounded-xl p-4">
                 <h3 className="font-semibold mb-3 flex items-center gap-2"><DollarSign className="h-4 w-4 text-amber-600" /> Payment</h3>
