@@ -754,17 +754,17 @@ export default function RegisterPage() {
                           <div className="space-y-3">
                             <div>
                               <Label className="text-xs sm:text-sm text-gray-600">Bank Name</Label>
-                              <p className="font-semibold text-base sm:text-lg">UBL</p>
+                              <p className="font-semibold text-base sm:text-lg">Easypaisa</p>
                             </div>
                             <div>
                               <Label className="text-xs sm:text-sm text-gray-600">Account Name</Label>
-                              <p className="font-semibold text-base sm:text-lg">Fawad Mughal</p>
+                              <p className="font-semibold text-base sm:text-lg">Ali Bakht Jafry</p>
                             </div>
                             <div>
                               <Label className="text-xs sm:text-sm text-gray-600">Account Number</Label>
                               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-1">
                                 <p className="font-mono font-semibold text-base sm:text-lg text-blue-700 break-all">
-                                  0863286208011
+                                  03054517559
                                 </p>
                                 <Button
                                   type="button"

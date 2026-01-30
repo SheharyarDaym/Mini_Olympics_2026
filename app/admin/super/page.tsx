@@ -98,7 +98,7 @@ export default function SuperAdminPage() {
       .then((data) => {
         if (data.authenticated) {
           setUserRole(data.role || 'admin');
-          if (!['super_admin', 'admin'].includes(data.role)) {
+          if (!['super_admin', 'admin', 'hoc_admin'].includes(data.role)) {
             router.push('/admin/dashboard');
             return;
           }

@@ -217,7 +217,7 @@ export default function RegistrationsPage() {
     }
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const params = new URLSearchParams();
     if (filter !== 'all') {
       if (filter === 'paid') params.set('status', 'paid');
@@ -228,7 +228,26 @@ export default function RegistrationsPage() {
     if (gameFilter !== 'all') params.set('game', gameFilter);
     if (startDate) params.set('startDate', startDate);
     if (endDate) params.set('endDate', endDate);
-    window.open(`/api/export?${params.toString()}`, '_blank');
+    try {
+      const res = await fetch(`/api/export?${params.toString()}`, { credentials: 'include' });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err?.error || `Export failed (${res.status})`);
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = res.headers.get('Content-Disposition')?.match(/filename="?([^"]+)"?/)?.[1] || `registrations_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error(e);
+      alert('Export failed. Please try again.');
+    }
   };
 
   const handleView = (reg: Registration) => {

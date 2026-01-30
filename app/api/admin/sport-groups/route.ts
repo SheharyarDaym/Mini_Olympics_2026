@@ -18,8 +18,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Only super_admin and admin can view groups
-    if (!['super_admin', 'admin'].includes(session.role)) {
+    // super_admin, admin, and hoc_admin can view groups
+    if (!['super_admin', 'admin', 'hoc_admin'].includes(session.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -50,9 +50,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Only super_admin can create groups
-    if (session.role !== 'super_admin') {
-      return NextResponse.json({ error: 'Forbidden - Super Admin only' }, { status: 403 });
+    // super_admin and hoc_admin can create groups
+    if (!['super_admin', 'hoc_admin'].includes(session.role)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const body = await request.json();
@@ -103,9 +103,9 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Only super_admin can update groups
-    if (session.role !== 'super_admin') {
-      return NextResponse.json({ error: 'Forbidden - Super Admin only' }, { status: 403 });
+    // super_admin and hoc_admin can update groups
+    if (!['super_admin', 'hoc_admin'].includes(session.role)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const body = await request.json();
@@ -151,9 +151,9 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Only super_admin can delete groups
-    if (session.role !== 'super_admin') {
-      return NextResponse.json({ error: 'Forbidden - Super Admin only' }, { status: 403 });
+    // super_admin and hoc_admin can delete groups
+    if (!['super_admin', 'hoc_admin'].includes(session.role)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);

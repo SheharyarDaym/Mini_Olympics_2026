@@ -12,9 +12,13 @@ export async function GET(request: NextRequest) {
     const cookieStore = await cookies();
     const sessionId = cookieStore.get('admin_session')?.value;
     const session = await getAdminSession(sessionId);
-    
+
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!['super_admin', 'admin', 'hoc_admin'].includes(session.role)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -28,41 +32,49 @@ export async function GET(request: NextRequest) {
       WHERE status = 'paid' AND team_name IS NOT NULL AND team_name != ''
     `;
     const teamsParams: any[] = [];
-    
+
     if (gender) {
       teamsParams.push(gender);
       teamsQuery += ` AND gender = $${teamsParams.length}`;
     }
-    
+
     teamsQuery += ' ORDER BY team_name ASC';
-    
+
     const teams = await sql(teamsQuery, teamsParams);
 
-    // Get existing schedules
-    let schedulesQuery = 'SELECT * FROM match_schedules';
-    const schedulesParams: any[] = [];
-    const schedulesConditions: string[] = [];
-    
-    if (game) {
-      schedulesParams.push(game);
-      schedulesConditions.push(`game_name = $${schedulesParams.length}`);
-    }
-    if (gender) {
-      schedulesParams.push(gender);
-      schedulesConditions.push(`gender = $${schedulesParams.length}`);
-    }
-    
-    if (schedulesConditions.length > 0) {
-      schedulesQuery += ' WHERE ' + schedulesConditions.join(' AND ');
-    }
-    schedulesQuery += ' ORDER BY created_at DESC';
-    
-    const schedules = await sql(schedulesQuery, schedulesParams);
+    // Get existing schedules (table may not exist if DB was inited without match_schedules)
+    let schedules: any[] = [];
+    try {
+      let schedulesQuery = 'SELECT * FROM match_schedules';
+      const schedulesParams: any[] = [];
+      const schedulesConditions: string[] = [];
 
-    return NextResponse.json({ 
-      success: true, 
+      if (game) {
+        schedulesParams.push(game);
+        schedulesConditions.push(`game_name = $${schedulesParams.length}`);
+      }
+      if (gender) {
+        schedulesParams.push(gender);
+        schedulesConditions.push(`gender = $${schedulesParams.length}`);
+      }
+
+      if (schedulesConditions.length > 0) {
+        schedulesQuery += ' WHERE ' + schedulesConditions.join(' AND ');
+      }
+      schedulesQuery += ' ORDER BY created_at DESC';
+
+      schedules = await sql(schedulesQuery, schedulesParams);
+    } catch (schedErr: any) {
+      if (schedErr?.code !== '42P01' && !schedErr?.message?.includes('match_schedules')) {
+        throw schedErr;
+      }
+      // Table does not exist; return empty schedules
+    }
+
+    return NextResponse.json({
+      success: true,
       teams: teams,
-      schedules: schedules
+      schedules: schedules,
     });
   } catch (error: any) {
     console.error('Fetch matches error:', error);
@@ -81,7 +93,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!['super_admin', 'admin'].includes(session.role)) {
+    if (!['super_admin', 'admin', 'hoc_admin'].includes(session.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -209,6 +221,10 @@ export async function DELETE(request: NextRequest) {
     
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!['super_admin', 'admin', 'hoc_admin'].includes(session.role)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);

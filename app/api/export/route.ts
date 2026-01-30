@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
+import { getAdminSession } from '@/lib/auth';
+import { cookies } from 'next/headers';
 
-// Force dynamic rendering
+// Force dynamic rendering – never cache export in production
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 // Helper function to escape CSV values
 function escapeCsvValue(value: any): string {
@@ -19,6 +22,16 @@ function escapeCsvValue(value: any): string {
 
 export async function GET(request: NextRequest) {
   try {
+    const cookieStore = await cookies();
+    const sessionToken = cookieStore.get('admin_session')?.value;
+    const session = await getAdminSession(sessionToken);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (!['super_admin', 'admin', 'registration_admin'].includes(session.role)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const status = searchParams.get('status');
     const gender = searchParams.get('gender');
@@ -171,6 +184,9 @@ export async function GET(request: NextRequest) {
       headers: {
         'Content-Type': 'text/csv; charset=utf-8',
         'Content-Disposition': `attachment; filename="${filename}"`,
+        'Cache-Control': 'no-store, no-cache, private, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
       },
     });
   } catch (error: any) {

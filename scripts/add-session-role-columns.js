@@ -39,6 +39,18 @@ async function run() {
     console.log('✅ admin_sessions.admin_user_id added (or already exists)');
     await sql`ALTER TABLE admin_sessions ADD COLUMN IF NOT EXISTS role TEXT`;
     console.log('✅ admin_sessions.role added (or already exists)');
+    await sql`
+      CREATE TABLE IF NOT EXISTS match_schedules (
+        id TEXT PRIMARY KEY,
+        game_name TEXT NOT NULL,
+        gender TEXT NOT NULL CHECK (gender IN ('boys', 'girls')),
+        schedule_data TEXT,
+        generated_by TEXT,
+        created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+        updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+      )
+    `;
+    console.log('✅ match_schedules table ensured');
     console.log('Done. Log out and log back in as hoi/hof so the session stores your role.');
   } catch (err) {
     console.error('❌ Migration failed:', err.message);
