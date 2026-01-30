@@ -192,11 +192,14 @@ export default function EmailComposerPage() {
             </div>
           </div>
           
-          <!-- Footer -->
+          <!-- Footer (character icons so they show in all email clients) -->
           <div style="text-align: center; margin-top: 24px; color: #94a3b8; font-size: 12px;">
-            <p style="margin: 0 0 8px 0;">© 2026 FCIT Sports Society. All rights reserved.</p>
+            <p style="margin: 0 0 12px 0;">© 2026 <a href="https://pucit.edu.pk" style="color: #3b82f6; text-decoration: none; font-weight: 600;">FCIT Sports Society</a>. All rights reserved.</p>
             <p style="margin: 0;">
-              <a href="https://pucit.edu.pk" style="color: #3b82f6; text-decoration: none;">pucit.edu.pk</a>
+              <a href="mailto:sports.oc@pucit.edu.pk" style="color: #64748b; text-decoration: none; font-size: 18px; margin: 0 8px;" title="Email">✉︎</a>
+              <a href="https://facebook.com/PucitSSOldCampus/" style="color: #64748b; text-decoration: none; font-size: 18px; margin: 0 8px;" title="Facebook">ⓕ</a>
+              <a href="https://instagram.com/fcit_oc_sports" style="color: #64748b; text-decoration: none; font-size: 18px; margin: 0 8px;" title="Instagram">📷</a>
+              <a href="https://linkedin.com/company/fcit-sports-society-oc/" style="color: #64748b; text-decoration: none; font-size: 18px; margin: 0 8px;" title="LinkedIn">🔗</a>
             </p>
           </div>
         </div>

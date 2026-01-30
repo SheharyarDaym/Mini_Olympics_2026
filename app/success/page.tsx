@@ -5,8 +5,7 @@ import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle2, Download, QrCode, Medal, Users, ArrowLeft, ExternalLink, MessageCircle, Trophy, Home } from 'lucide-react';
-import QRCode from 'qrcode';
+import { CheckCircle2, Download, Medal, Users, ArrowLeft, ExternalLink, MessageCircle, Trophy, Home, FileText } from 'lucide-react';
 
 function SuccessContent() {
   const searchParams = useSearchParams();
@@ -16,43 +15,8 @@ function SuccessContent() {
   const method = searchParams.get('method');
   const transactionId = searchParams.get('transactionId');
   const total = searchParams.get('total');
-  const [qrCode, setQrCode] = useState<string>('');
   const [groupInfo, setGroupInfo] = useState<any[]>([]);
   const [groupLoading, setGroupLoading] = useState(false);
-
-  useEffect(() => {
-    if (slipId) {
-      let qrData: string;
-      
-      if (method === 'cash' && registrationNumber) {
-        const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-        qrData = `${baseUrl}/verify-cash?regNum=${registrationNumber}&slipId=${slipId}`;
-      } else {
-        qrData = JSON.stringify({
-          type: 'MiniOlympics_Registration',
-          registrationNumber: registrationNumber || '',
-          slipId: slipId,
-          registrationId: registrationId || '',
-          amount: total || '0',
-          method: method || '',
-          transactionId: transactionId || '',
-          timestamp: new Date().toISOString(),
-        });
-      }
-      
-      QRCode.toDataURL(qrData, {
-        errorCorrectionLevel: 'H',
-        margin: 2,
-        width: 300,
-        color: {
-          dark: '#1e293b',
-          light: '#FFFFFF',
-        },
-      })
-        .then((url) => setQrCode(url))
-        .catch(console.error);
-    }
-  }, [slipId, registrationNumber, registrationId, total, method, transactionId]);
 
   useEffect(() => {
     const loadGroups = async () => {
@@ -153,7 +117,7 @@ function SuccessContent() {
                 <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-6 border border-amber-200">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="p-2 bg-amber-100 rounded-lg">
-                      <QrCode className="h-5 w-5 text-amber-600" />
+                      <FileText className="h-5 w-5 text-amber-600" />
                     </div>
                     <h3 className="font-bold text-lg text-slate-800">Cash Payment Slip</h3>
                   </div>
@@ -162,22 +126,6 @@ function SuccessContent() {
                     <p className="text-sm text-slate-500 mb-1">Slip ID</p>
                     <p className="text-2xl font-mono font-bold text-amber-600">{slipId}</p>
                   </div>
-
-                  {qrCode && (
-                    <div className="flex flex-col items-center mb-4">
-                      <div className="bg-white p-4 rounded-xl shadow-lg">
-                        <img 
-                          src={qrCode} 
-                          alt="QR Code" 
-                          className="w-48 h-48"
-                          style={{ imageRendering: 'crisp-edges' }}
-                        />
-                      </div>
-                      <p className="text-xs text-slate-500 mt-3 text-center">
-                        Scan this QR code to verify your registration
-                      </p>
-                    </div>
-                  )}
 
                   <div className="bg-orange-100 rounded-lg p-4 mb-4">
                     <p className="text-sm text-orange-800 font-medium flex items-start gap-2">
@@ -222,7 +170,7 @@ function SuccessContent() {
                 <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
                   <div className="flex items-center gap-3 mb-4">
                     <div className="p-2 bg-blue-100 rounded-lg">
-                      <QrCode className="h-5 w-5 text-blue-600" />
+                      <FileText className="h-5 w-5 text-blue-600" />
                     </div>
                     <h3 className="font-bold text-lg text-slate-800">Online Payment Reference</h3>
                   </div>
@@ -231,22 +179,6 @@ function SuccessContent() {
                     <p className="text-sm text-slate-500 mb-1">Reference ID</p>
                     <p className="text-2xl font-mono font-bold text-blue-600">{slipId}</p>
                   </div>
-
-                  {qrCode && (
-                    <div className="flex flex-col items-center mb-4">
-                      <div className="bg-white p-4 rounded-xl shadow-lg">
-                        <img 
-                          src={qrCode} 
-                          alt="QR Code" 
-                          className="w-48 h-48"
-                          style={{ imageRendering: 'crisp-edges' }}
-                        />
-                      </div>
-                      <p className="text-xs text-slate-500 mt-3 text-center">
-                        Scan this QR code to verify your registration
-                      </p>
-                    </div>
-                  )}
 
                   <div className="bg-blue-100 rounded-lg p-4">
                     <p className="text-sm text-blue-800 font-medium flex items-start gap-2">
@@ -300,21 +232,15 @@ function SuccessContent() {
                         {g.groupUrl && (
                           <button
                             onClick={() => {
-                              // Copy message first, then open group
                               if (g.messageText) {
                                 navigator.clipboard.writeText(g.messageText);
                               }
                               window.open(g.groupUrl, '_blank');
-                              if (g.messageText) {
-                                setTimeout(() => {
-                                  alert('✅ Message copied!\n\nAfter joining the group, just PASTE (Ctrl+V) to introduce yourself.');
-                                }, 500);
-                              }
                             }}
                             className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-lg text-sm font-medium transition-all shadow-md cursor-pointer"
                           >
                             <ExternalLink className="h-4 w-4" />
-                            Join Group (auto-copy message)
+                            Join Group
                           </button>
                         )}
                         {g.whatsappUrl && (
@@ -329,16 +255,6 @@ function SuccessContent() {
                           </a>
                         )}
                       </div>
-                      
-                      {/* Message preview */}
-                      {g.messageText && (
-                        <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
-                          <p className="text-xs text-emerald-700 mb-2 font-medium">📋 This message will be copied when you join:</p>
-                          <div className="text-sm text-slate-700 font-mono text-xs leading-relaxed bg-white p-2 rounded border italic">
-                            {g.messageText}
-                          </div>
-                        </div>
-                      )}
                       
                       {/* Coordinator info */}
                       {g.coordinatorName && (

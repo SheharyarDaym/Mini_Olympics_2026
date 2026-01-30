@@ -13,21 +13,34 @@ export async function GET(request: NextRequest) {
     const cookieStore = await cookies();
     const sessionId = cookieStore.get('admin_session')?.value;
     const session = await getAdminSession(sessionId);
-    
+
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // super_admin, admin, and hoc_admin can view groups
     if (!['super_admin', 'admin', 'hoc_admin'].includes(session.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const groups = await sql`
-      SELECT id, game_name, gender, group_title, group_url, coordinator_name, coordinator_phone, message_template, is_active, updated_at
-      FROM sport_groups
-      ORDER BY game_name ASC, gender ASC
-    `;
+    let groups: any[];
+    try {
+      groups = await sql`
+        SELECT id, game_name, gender, group_title, group_url, coordinator_name, coordinator_phone, message_template, is_active, updated_at
+        FROM sport_groups
+        ORDER BY game_name ASC, gender ASC
+      `;
+    } catch (err: any) {
+      if (err?.code === '42703') {
+        groups = await sql`
+          SELECT id, game_name, group_title, group_url, coordinator_name, coordinator_phone, message_template, is_active, updated_at
+          FROM sport_groups
+          ORDER BY game_name ASC
+        `;
+        groups = (groups as any[]).map((r) => ({ ...r, gender: 'boys' }));
+      } else {
+        throw err;
+      }
+    }
 
     return NextResponse.json({ success: true, data: groups });
   } catch (error: any) {
@@ -68,19 +81,56 @@ export async function POST(request: NextRequest) {
     }
 
     const id = uuidv4();
+    const isActiveVal = isActive !== false;
 
-    await sql`
-      INSERT INTO sport_groups (id, game_name, gender, group_title, group_url, coordinator_name, coordinator_phone, message_template, is_active, updated_at)
-      VALUES (${id}, ${gameName}, ${genderValue}, ${groupTitle || gameName}, ${groupUrl || null}, ${coordinatorName || null}, ${coordinatorPhone || null}, ${messageTemplate || null}, ${isActive !== false}, NOW())
-      ON CONFLICT (game_name, gender) DO UPDATE SET
-        group_title = EXCLUDED.group_title,
-        group_url = EXCLUDED.group_url,
-        coordinator_name = EXCLUDED.coordinator_name,
-        coordinator_phone = EXCLUDED.coordinator_phone,
-        message_template = EXCLUDED.message_template,
-        is_active = EXCLUDED.is_active,
-        updated_at = NOW()
-    `;
+    try {
+      await sql`
+        INSERT INTO sport_groups (id, game_name, gender, group_title, group_url, coordinator_name, coordinator_phone, message_template, is_active, updated_at)
+        VALUES (${id}, ${gameName}, ${genderValue}, ${groupTitle || gameName}, ${groupUrl || null}, ${coordinatorName || null}, ${coordinatorPhone || null}, ${messageTemplate || null}, ${isActiveVal}, NOW())
+        ON CONFLICT (game_name, gender) DO UPDATE SET
+          group_title = EXCLUDED.group_title,
+          group_url = EXCLUDED.group_url,
+          coordinator_name = EXCLUDED.coordinator_name,
+          coordinator_phone = EXCLUDED.coordinator_phone,
+          message_template = EXCLUDED.message_template,
+          is_active = EXCLUDED.is_active,
+          updated_at = NOW()
+      `;
+    } catch (err: any) {
+      const msg = err?.message || '';
+      const code = err?.code ? String(err.code) : '';
+      const isConflictError = msg.includes('no unique or exclusion constraint') || msg.includes('ON CONFLICT');
+      const isNoGenderColumn = code === '42703';
+      if (isConflictError) {
+        await sql`
+          INSERT INTO sport_groups (id, game_name, gender, group_title, group_url, coordinator_name, coordinator_phone, message_template, is_active, updated_at)
+          VALUES (${id}, ${gameName}, ${genderValue}, ${groupTitle || gameName}, ${groupUrl || null}, ${coordinatorName || null}, ${coordinatorPhone || null}, ${messageTemplate || null}, ${isActiveVal}, NOW())
+          ON CONFLICT (game_name) DO UPDATE SET
+            group_title = EXCLUDED.group_title,
+            group_url = EXCLUDED.group_url,
+            coordinator_name = EXCLUDED.coordinator_name,
+            coordinator_phone = EXCLUDED.coordinator_phone,
+            message_template = EXCLUDED.message_template,
+            is_active = EXCLUDED.is_active,
+            updated_at = NOW()
+        `;
+      } else if (isNoGenderColumn) {
+        await sql`
+          INSERT INTO sport_groups (id, game_name, group_title, group_url, coordinator_name, coordinator_phone, message_template, is_active, updated_at)
+          VALUES (${id}, ${gameName}, ${groupTitle || gameName}, ${groupUrl || null}, ${coordinatorName || null}, ${coordinatorPhone || null}, ${messageTemplate || null}, ${isActiveVal}, NOW())
+          ON CONFLICT (game_name) DO UPDATE SET
+            group_title = EXCLUDED.group_title,
+            group_url = EXCLUDED.group_url,
+            coordinator_name = EXCLUDED.coordinator_name,
+            coordinator_phone = EXCLUDED.coordinator_phone,
+            message_template = EXCLUDED.message_template,
+            is_active = EXCLUDED.is_active,
+            updated_at = NOW()
+        `;
+      } else {
+        throw err;
+      }
+    }
 
     return NextResponse.json({ success: true, id });
   } catch (error: any) {

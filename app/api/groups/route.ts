@@ -32,12 +32,31 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, data: [] });
     }
 
-    // Filter by gender - get groups matching the participant's gender
-    const rows = await sql`
-      SELECT game_name, gender, group_title, group_url, coordinator_name, coordinator_phone, message_template
+    // Parameterized query: IN clause for games to avoid driver array quirks
+    const gamePlaceholders = games.map((_, i) => `$${i + 1}`).join(', ');
+    const paramsWithGender = [...games, gender];
+    const genderParamIndex = games.length + 1;
+    let queryText = `SELECT game_name, group_title, group_url, coordinator_name, coordinator_phone, message_template
       FROM sport_groups
-      WHERE is_active = true AND game_name = ANY(${games}) AND gender = ${gender}
-    `;
+      WHERE is_active = true AND game_name IN (${gamePlaceholders})`;
+    const selectWithGender = `SELECT game_name, gender, group_title, group_url, coordinator_name, coordinator_phone, message_template
+      FROM sport_groups
+      WHERE is_active = true AND game_name IN (${gamePlaceholders}) AND gender = $${genderParamIndex}
+      ORDER BY game_name`;
+
+    let rows: any[];
+    try {
+      rows = await sql(selectWithGender, paramsWithGender);
+    } catch (err: any) {
+      const code = err?.code ? String(err.code) : '';
+      // 42703 = undefined_column (sport_groups may not have gender if created by older init)
+      if (code === '42703') {
+        queryText += ' ORDER BY game_name';
+        rows = await sql(queryText, games);
+      } else {
+        throw err;
+      }
+    }
 
     const vars = {
       regNum,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 import { cookies } from 'next/headers';
+import { sendPaymentReceivedEmail, sendPaymentNotReceivedEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -175,6 +176,24 @@ export async function PATCH(
       } catch (financeError: any) {
         // Log but don't fail the update if finance record creation fails
         console.error('Failed to create finance record:', financeError.message);
+      }
+    }
+
+    // Send payment status email when admin confirms or rejects (do not fail response if email fails)
+    if (status === 'paid' || status === 'rejected') {
+      const email = updated.email;
+      const regNum = updated.registration_number;
+      const name = updated.name || 'Participant';
+      const slipId = updated.slip_id || '';
+      try {
+        if (status === 'paid') {
+          await sendPaymentReceivedEmail({ to: email, name, regNum, slipId });
+        } else {
+          const paymentMethod = (updated.payment_method === 'online') ? 'online' : 'cash';
+          await sendPaymentNotReceivedEmail({ to: email, name, regNum, slipId, paymentMethod });
+        }
+      } catch (emailErr: any) {
+        console.error('Payment status email failed:', emailErr?.message || emailErr);
       }
     }
 

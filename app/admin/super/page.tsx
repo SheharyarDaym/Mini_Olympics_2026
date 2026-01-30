@@ -490,9 +490,12 @@ export default function SuperAdminPage() {
               />
             </div>
             
-            <div className="flex items-center gap-2">
-              <input type="checkbox" id="isActive" checked={formData.isActive} onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })} className="w-4 h-4 rounded" />
-              <Label htmlFor="isActive" className="font-normal cursor-pointer">Active</Label>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <input type="checkbox" id="isActive" checked={formData.isActive} onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })} className="w-4 h-4 rounded" />
+                <Label htmlFor="isActive" className="font-normal cursor-pointer">Active</Label>
+              </div>
+              <p className="text-xs text-slate-500">When checked, this group and its join link appear on the registration success page so participants can join. Uncheck to hide it without deleting.</p>
             </div>
           </div>
           

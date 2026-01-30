@@ -57,6 +57,7 @@ type Registration = {
   selected_games: string[] | string;
   total_amount: number;
   discount: number | null;
+  coupon_code?: string | null;
   payment_method: string;
   slip_id: string | null;
   transaction_id: string | null;
@@ -530,6 +531,11 @@ export default function RegistrationsPage() {
                       </td>
                       <td className="p-4">
                         <p className="font-bold text-emerald-600">Rs. {(reg.total_amount - (reg.discount || 0)).toLocaleString()}</p>
+                        {(reg.discount && Number(reg.discount) > 0) && (
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            {reg.coupon_code ? `Coupon: ${reg.coupon_code}` : `Discount: Rs. ${Number(reg.discount).toLocaleString()}`}
+                          </p>
+                        )}
                       </td>
                       <td className="p-4">
                         <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${reg.payment_method === 'online' ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'}`}>
@@ -589,8 +595,13 @@ export default function RegistrationsPage() {
                       {reg.status.replace('_', ' ').toUpperCase()}
                     </span>
                   </div>
-                  <div className="flex gap-2 text-sm mb-3">
+                  <div className="flex flex-wrap gap-2 text-sm mb-3 items-center">
                     <span className="font-bold text-emerald-600">Rs. {(reg.total_amount - (reg.discount || 0)).toLocaleString()}</span>
+                    {(reg.discount && Number(reg.discount) > 0) && (
+                      <span className="text-xs text-slate-500">
+                        ({reg.coupon_code ? `Coupon: ${reg.coupon_code}` : `Rs. ${Number(reg.discount).toLocaleString()} off`})
+                      </span>
+                    )}
                     <span>•</span>
                     <span>{selectedGames.length} game(s)</span>
                     <span>•</span>
@@ -683,6 +694,9 @@ export default function RegistrationsPage() {
                   <div><p className="text-slate-500">Method</p><p className="font-medium capitalize">{selectedRegistration.payment_method}</p></div>
                   <div><p className="text-slate-500">Status</p><p className="font-medium capitalize">{selectedRegistration.status.replace('_', ' ')}</p></div>
                   <div><p className="text-slate-500">Amount</p><p className="font-medium">Rs. {selectedRegistration.total_amount?.toLocaleString()}</p></div>
+                  {selectedRegistration.coupon_code && (
+                    <div className="col-span-2"><p className="text-slate-500">Coupon applied</p><p className="font-medium text-amber-700">{selectedRegistration.coupon_code}</p></div>
+                  )}
                   <div>
                     <p className="text-slate-500">Discount</p>
                     {editingDiscount ? (

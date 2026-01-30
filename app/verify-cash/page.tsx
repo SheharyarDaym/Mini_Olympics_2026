@@ -20,6 +20,7 @@ type Registration = {
   selected_games: string[] | string;
   total_amount: number;
   discount: number | null;
+  coupon_code?: string | null;
   payment_method: string;
   slip_id: string;
   status: string;
@@ -392,13 +393,29 @@ function VerifyCashContent() {
                   ))}
                 </div>
               </div>
-              <div className="border-t pt-3 mt-3">
+              <div className="border-t pt-3 mt-3 space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-lg font-semibold">Total Amount:</span>
-                  <span className="text-3xl font-bold text-green-600">
+                  <span className="text-2xl font-bold text-green-600">
                     Rs. {registration.total_amount.toLocaleString()}
                   </span>
                 </div>
+                {(registration.discount && Number(registration.discount) > 0) && (
+                  <>
+                    <div className="flex justify-between items-center text-amber-700">
+                      <span className="text-sm font-medium">
+                        {registration.coupon_code ? `Coupon applied (${registration.coupon_code}):` : 'Discount:'}
+                      </span>
+                      <span className="font-semibold">- Rs. {Number(registration.discount).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center border-t pt-2">
+                      <span className="text-lg font-semibold">Final Amount:</span>
+                      <span className="text-2xl font-bold text-green-700">
+                        Rs. {(registration.total_amount - (Number(registration.discount) || 0)).toLocaleString()}
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 

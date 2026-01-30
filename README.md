@@ -6,7 +6,7 @@ A comprehensive registration and management system for FCIT Sports Society Mini 
 
 ### Public Features
 - **Registration Form** - Multi-step registration with game selection
-- **Payment Methods** - Support for cash and online payments
+- **Payment Methods** - Support for cash and online payments; optional coupon codes for percentage discount
 - **Team Management** - Team name validation and member management
 - **QR Code Generation** - Registration confirmation with QR codes
 - **Email Notifications** - Automated email confirmations
@@ -62,6 +62,11 @@ A comprehensive registration and management system for FCIT Sports Society Mini 
    
    # Create admin user
    node scripts/create-admin-node.js admin your-password
+   ```
+
+   **Enable coupons (optional):** If you use an existing database, run the coupons migration once (e.g. via Neon SQL Editor or psql):
+   ```sql
+   -- Run scripts/add-coupons-and-column.sql
    ```
 
 5. **Start development server**

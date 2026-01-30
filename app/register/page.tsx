@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { CheckCircle2, Circle, DollarSign, X, Copy, ExternalLink, Users, MessageCircle } from 'lucide-react';
+import { CheckCircle2, Circle, DollarSign, X, Copy, ExternalLink, Users, MessageCircle, Tag } from 'lucide-react';
 import Link from 'next/link';
 import { gamesPricing as defaultGamesPricing, getAvailableGames as defaultGetAvailableGames, isTeamGame as defaultIsTeamGame, getRequiredPlayers as defaultGetRequiredPlayers } from '@/lib/games-pricing';
 
@@ -71,6 +71,10 @@ export default function RegisterPage() {
   const [groupsLoading, setGroupsLoading] = useState(false);
   const [teamNameStatus, setTeamNameStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
   const [teamNameError, setTeamNameError] = useState('');
+  const [couponInput, setCouponInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountPercent: number } | null>(null);
+  const [couponError, setCouponError] = useState('');
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
 
   // Fetch games from database on mount
   useEffect(() => {
@@ -293,6 +297,44 @@ export default function RegisterPage() {
     ? calculateTotal(formData.selectedGames, formData.gender)
     : 0;
 
+  const discountAmount = appliedCoupon && totalAmount > 0
+    ? Math.round((totalAmount * appliedCoupon.discountPercent) / 100 * 100) / 100
+    : 0;
+  const finalAmount = totalAmount - discountAmount;
+
+  const handleApplyCoupon = async () => {
+    const code = couponInput.trim();
+    if (!code) {
+      setCouponError('Enter a coupon code');
+      return;
+    }
+    setValidatingCoupon(true);
+    setCouponError('');
+    setAppliedCoupon(null);
+    try {
+      const res = await fetch(`/api/coupons/validate?code=${encodeURIComponent(code)}`, { cache: 'no-store' });
+      const data = await res.json();
+      if (data.valid && data.discountPercent) {
+        setAppliedCoupon({ code: code.toUpperCase(), discountPercent: data.discountPercent });
+        setCouponError('');
+      } else {
+        setAppliedCoupon(null);
+        setCouponError(data.error || 'Invalid coupon code');
+      }
+    } catch {
+      setAppliedCoupon(null);
+      setCouponError('Could not validate coupon');
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponInput('');
+    setCouponError('');
+  };
+
   const handleSubmit = async () => {
     setLoading(true);
     try {
@@ -313,6 +355,8 @@ export default function RegisterPage() {
           transactionId: formData.transactionId,
           screenshotUrl: formData.screenshotUrl,
           totalAmount,
+          discount: discountAmount,
+          couponCode: appliedCoupon ? appliedCoupon.code : undefined,
         }),
       });
 
@@ -322,7 +366,7 @@ export default function RegisterPage() {
           id: data.registrationId,
           slipId: data.slipId || '',
           method: formData.paymentMethod,
-          total: totalAmount.toString(),
+          total: finalAmount.toString(),
         });
         if (data.registrationNumber) {
           params.set('regNum', data.registrationNumber.toString());
@@ -724,6 +768,43 @@ export default function RegisterPage() {
                       Rs. {totalAmount.toLocaleString()}
                     </span>
                   </div>
+                  {appliedCoupon && (
+                    <>
+                      <div className="mt-2 flex items-center justify-between text-sm text-blue-600">
+                        <span>Coupon {appliedCoupon.code} ({appliedCoupon.discountPercent}% off):</span>
+                        <span>- Rs. {discountAmount.toLocaleString()}</span>
+                      </div>
+                      <div className="mt-2 flex items-center justify-between border-t border-blue-200 pt-2">
+                        <span className="font-semibold">Amount to pay:</span>
+                        <span className="text-xl font-bold text-blue-800">Rs. {finalAmount.toLocaleString()}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Tag className="h-4 w-4 text-amber-600" />
+                    <span className="font-semibold text-sm">Coupon code</span>
+                  </div>
+                  {appliedCoupon ? (
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm text-green-700 font-medium">{appliedCoupon.code} applied ({appliedCoupon.discountPercent}% off)</span>
+                      <Button type="button" variant="outline" size="sm" onClick={handleRemoveCoupon} className="text-red-600 border-red-200 hover:bg-red-50">Remove</Button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2 flex-wrap items-center">
+                      <Input
+                        value={couponInput}
+                        onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponError(''); }}
+                        placeholder="Enter code"
+                        className="max-w-[120px]"
+                      />
+                      <Button type="button" variant="outline" size="sm" onClick={handleApplyCoupon} disabled={validatingCoupon || !couponInput.trim()}>
+                        {validatingCoupon ? 'Checking...' : 'Apply'}
+                      </Button>
+                      {couponError && <span className="text-sm text-red-600">{couponError}</span>}
+                    </div>
+                  )}
                 </div>
                 <Label>Payment Method *</Label>
                 <div className="space-y-4">
@@ -794,7 +875,7 @@ export default function RegisterPage() {
                           <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                             <p className="text-xs sm:text-sm text-yellow-800">
                               <strong>Important:</strong> Please transfer the exact amount (
-                              <strong>Rs. {totalAmount.toLocaleString()}</strong>) to this account
+                              <strong>Rs. {finalAmount.toLocaleString()}</strong>) to this account
                               and keep the transaction receipt.
                             </p>
                           </div>
@@ -946,12 +1027,31 @@ export default function RegisterPage() {
                     })}
                   </div>
                   <div className="border-t pt-3">
-                    <div className="flex justify-between items-center">
-                      <p className="text-xs sm:text-sm text-gray-600">Total Amount</p>
-                      <p className="text-xl sm:text-2xl font-bold text-green-600">
-                        Rs. {totalAmount.toLocaleString()}
-                      </p>
-                    </div>
+                    {appliedCoupon ? (
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-gray-600">Subtotal</span>
+                          <span>Rs. {totalAmount.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm text-green-700">
+                          <span>Coupon {appliedCoupon.code} ({appliedCoupon.discountPercent}% off)</span>
+                          <span>- Rs. {discountAmount.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between items-center pt-1 border-t">
+                          <p className="text-xs sm:text-sm text-gray-600 font-medium">Total Amount</p>
+                          <p className="text-xl sm:text-2xl font-bold text-green-600">
+                            Rs. {finalAmount.toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex justify-between items-center">
+                        <p className="text-xs sm:text-sm text-gray-600">Total Amount</p>
+                        <p className="text-xl sm:text-2xl font-bold text-green-600">
+                          Rs. {finalAmount.toLocaleString()}
+                        </p>
+                      </div>
+                    )}
                   </div>
                   <div className="border-t pt-3">
                     <p className="text-xs sm:text-sm text-gray-600">Payment Method</p>

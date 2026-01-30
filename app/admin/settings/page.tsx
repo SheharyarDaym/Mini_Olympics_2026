@@ -37,6 +37,7 @@ import {
   Mail,
   Server,
   Send,
+  Tag,
 } from 'lucide-react';
 
 type GamePricing = {
@@ -64,6 +65,44 @@ export default function SettingsPage() {
     smtp_password: '',
     smtp_from_name: 'FCIT Sports Society',
   });
+  // Defaults must match lib/email.ts so "what you see = what gets sent" until you save custom templates
+  const [emailTemplates, setEmailTemplates] = useState({
+    email_registration_submitted_subject: 'Mini Olympics 2026 Registration',
+    email_registration_submitted_body: `<h2>Welcome to Mini Olympics 2026! 🏆</h2>
+<p>Dear {{name}},</p>
+<p>Thank you for registering for the FCIT Sports Mini Olympics 2026. We're excited to have you on board!</p>
+<p>Your registration has been received and is currently being processed.</p>
+<p><strong>Ticket #:</strong> {{regNum}}</p>
+<p><strong>Reference / Slip ID:</strong> {{slipId}}</p>
+<p><strong>Team name:</strong> {{teamName}}</p>
+<p><strong>Registered game(s):</strong></p>
+<ul>
+{{gamesList}}
+</ul>
+<p><strong>What's Next?</strong></p>
+<ul>
+  <li>{{paymentNext}}</li>
+  <li>Join the WhatsApp groups for your registered games</li>
+  <li>Stay tuned for match schedules</li>
+</ul>
+<p>Good luck and may the best athlete win!</p>`,
+    email_payment_received_subject: 'Mini Olympics 2026 Registration',
+    email_payment_received_body: `<h2>Payment Confirmed ✅</h2>
+<p>Dear {{name}},</p>
+<p>Your payment for <strong>Mini Olympics 2026</strong> has been received and verified.</p>
+<p><strong>Ticket #:</strong> {{regNum}}</p>
+<p><strong>Reference ID:</strong> {{slipId}}</p>
+<p>You are all set. We look forward to seeing you at the event.</p>`,
+    email_payment_rejected_subject: 'Mini Olympics 2026 Registration',
+    email_payment_rejected_body: `<h2>Payment Verification Required</h2>
+<p>Dear {{name}},</p>
+<p>We were unable to verify your payment for <strong>Mini Olympics 2026</strong> (Ticket #{{regNum}}).</p>
+<p><strong>Reference ID:</strong> {{slipId}}</p>
+<p>{{paymentAction}}</p>`,
+  });
+  const [savingTemplates, setSavingTemplates] = useState(false);
+  const [templatesSaveSuccess, setTemplatesSaveSuccess] = useState(false);
+  const [selectedEmailTemplate, setSelectedEmailTemplate] = useState<'registration' | 'payment_received' | 'payment_rejected'>('registration');
 
   // Games state
   const [games, setGames] = useState<GamePricing[]>([]);
@@ -79,9 +118,16 @@ export default function SettingsPage() {
     girls_players: '',
   });
 
+  const [coupons, setCoupons] = useState<{ id: string; code: string; discount_percent: number; is_active: boolean }[]>([]);
+  const [loadingCoupons, setLoadingCoupons] = useState(true);
+  const [couponForm, setCouponForm] = useState({ code: '', discountPercent: '' });
+  const [savingCoupon, setSavingCoupon] = useState(false);
+  const [deletingCouponId, setDeletingCouponId] = useState<string | null>(null);
+
   useEffect(() => {
     loadSettings();
     loadGames();
+    loadCoupons();
   }, []);
 
   const loadSettings = async () => {
@@ -90,14 +136,23 @@ export default function SettingsPage() {
       const res = await fetch('/api/admin/settings', { cache: 'no-store' });
       const data = await res.json();
       if (data.success) {
+        const d = data.data;
         setSettings({
-          openai_api_key: data.data.openai_api_key || '',
-          smtp_host: data.data.smtp_host || 'smtp.gmail.com',
-          smtp_port: data.data.smtp_port || '587',
-          smtp_email: data.data.smtp_email || '',
-          smtp_password: data.data.smtp_password || '',
-          smtp_from_name: data.data.smtp_from_name || 'FCIT Sports Society',
+          openai_api_key: d.openai_api_key || '',
+          smtp_host: d.smtp_host || 'smtp.gmail.com',
+          smtp_port: d.smtp_port || '587',
+          smtp_email: d.smtp_email || '',
+          smtp_password: d.smtp_password || '',
+          smtp_from_name: d.smtp_from_name || 'FCIT Sports Society',
         });
+        setEmailTemplates(prev => ({
+          email_registration_submitted_subject: d.email_registration_submitted_subject !== undefined ? d.email_registration_submitted_subject : prev.email_registration_submitted_subject,
+          email_registration_submitted_body: d.email_registration_submitted_body !== undefined ? d.email_registration_submitted_body : prev.email_registration_submitted_body,
+          email_payment_received_subject: d.email_payment_received_subject !== undefined ? d.email_payment_received_subject : prev.email_payment_received_subject,
+          email_payment_received_body: d.email_payment_received_body !== undefined ? d.email_payment_received_body : prev.email_payment_received_body,
+          email_payment_rejected_subject: d.email_payment_rejected_subject !== undefined ? d.email_payment_rejected_subject : prev.email_payment_rejected_subject,
+          email_payment_rejected_body: d.email_payment_rejected_body !== undefined ? d.email_payment_rejected_body : prev.email_payment_rejected_body,
+        }));
       }
     } catch (error) {
       console.error('Load settings error:', error);
@@ -118,6 +173,71 @@ export default function SettingsPage() {
       console.error('Load games error:', error);
     } finally {
       setLoadingGames(false);
+    }
+  };
+
+  const loadCoupons = async () => {
+    setLoadingCoupons(true);
+    try {
+      const res = await fetch('/api/admin/coupons', { cache: 'no-store' });
+      const data = await res.json();
+      if (data.success) {
+        setCoupons(data.data || []);
+      }
+    } catch (error) {
+      console.error('Load coupons error:', error);
+    } finally {
+      setLoadingCoupons(false);
+    }
+  };
+
+  const handleCreateCoupon = async () => {
+    const code = couponForm.code.trim().toUpperCase();
+    const pct = parseFloat(couponForm.discountPercent);
+    if (!code) {
+      alert('Enter a coupon code');
+      return;
+    }
+    if (isNaN(pct) || pct <= 0 || pct > 100) {
+      alert('Discount percent must be between 1 and 100');
+      return;
+    }
+    setSavingCoupon(true);
+    try {
+      const res = await fetch('/api/admin/coupons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, discount_percent: pct }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCouponForm({ code: '', discountPercent: '' });
+        loadCoupons();
+      } else {
+        alert(data.error || 'Failed to create coupon');
+      }
+    } catch (e) {
+      alert('Failed to create coupon');
+    } finally {
+      setSavingCoupon(false);
+    }
+  };
+
+  const handleDeleteCoupon = async (id: string) => {
+    if (!confirm('Delete this coupon? It will no longer be usable.')) return;
+    setDeletingCouponId(id);
+    try {
+      const res = await fetch(`/api/admin/coupons?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        loadCoupons();
+      } else {
+        alert(data.error || 'Failed to delete');
+      }
+    } catch (e) {
+      alert('Failed to delete coupon');
+    } finally {
+      setDeletingCouponId(null);
     }
   };
 
@@ -171,6 +291,27 @@ export default function SettingsPage() {
       alert('Failed to save SMTP settings');
     } finally {
       setSavingSmtp(false);
+    }
+  };
+
+  const handleSaveEmailTemplates = async () => {
+    setSavingTemplates(true);
+    setTemplatesSaveSuccess(false);
+    try {
+      const keys = Object.keys(emailTemplates) as (keyof typeof emailTemplates)[];
+      for (const key of keys) {
+        await fetch('/api/admin/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key, value: emailTemplates[key] }),
+        });
+      }
+      setTemplatesSaveSuccess(true);
+      setTimeout(() => setTemplatesSaveSuccess(false), 3000);
+    } catch (error) {
+      alert('Failed to save email templates');
+    } finally {
+      setSavingTemplates(false);
     }
   };
 
@@ -468,6 +609,155 @@ export default function SettingsPage() {
                   </Button>
                 </div>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Automated Email Templates — one at a time with dropdown */}
+        <Card className="border-0 shadow-lg flex flex-col min-h-[420px]">
+          <CardHeader className="bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-t-lg">
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Automated Email Templates
+            </CardTitle>
+            <CardDescription className="text-teal-100">
+              Edit one template at a time. Placeholders: name, regNum, slipId, teamName, gamesList, paymentNext, paymentAction.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6 flex flex-col flex-1 min-h-0">
+            <div className="space-y-4 flex-1 flex flex-col min-h-0">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-slate-700">Template</Label>
+                <Select value={selectedEmailTemplate} onValueChange={(v) => setSelectedEmailTemplate(v as typeof selectedEmailTemplate)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="registration">Registration submitted</SelectItem>
+                    <SelectItem value="payment_received">Payment received (confirmed)</SelectItem>
+                    <SelectItem value="payment_rejected">Payment rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2 flex-1 min-h-0 flex flex-col">
+                <Label className="text-sm">Subject</Label>
+                <Input
+                  value={
+                    selectedEmailTemplate === 'registration'
+                      ? emailTemplates.email_registration_submitted_subject
+                      : selectedEmailTemplate === 'payment_received'
+                        ? emailTemplates.email_payment_received_subject
+                        : emailTemplates.email_payment_rejected_subject
+                  }
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (selectedEmailTemplate === 'registration') setEmailTemplates(t => ({ ...t, email_registration_submitted_subject: v }));
+                    else if (selectedEmailTemplate === 'payment_received') setEmailTemplates(t => ({ ...t, email_payment_received_subject: v }));
+                    else setEmailTemplates(t => ({ ...t, email_payment_rejected_subject: v }));
+                  }}
+                  placeholder="Mini Olympics 2026 Registration"
+                />
+                <Label className="text-sm">Body (HTML)</Label>
+                <textarea
+                  value={
+                    selectedEmailTemplate === 'registration'
+                      ? emailTemplates.email_registration_submitted_body
+                      : selectedEmailTemplate === 'payment_received'
+                        ? emailTemplates.email_payment_received_body
+                        : emailTemplates.email_payment_rejected_body
+                  }
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (selectedEmailTemplate === 'registration') setEmailTemplates(t => ({ ...t, email_registration_submitted_body: v }));
+                    else if (selectedEmailTemplate === 'payment_received') setEmailTemplates(t => ({ ...t, email_payment_received_body: v }));
+                    else setEmailTemplates(t => ({ ...t, email_payment_rejected_body: v }));
+                  }}
+                  rows={8}
+                  className="w-full px-3 py-2 border rounded-lg text-sm font-mono resize-y flex-1 min-h-[180px]"
+                  placeholder="<p>Dear {{name}},</p>..."
+                />
+              </div>
+            </div>
+            <Button onClick={handleSaveEmailTemplates} disabled={savingTemplates} className="mt-4 bg-teal-500 hover:bg-teal-600">
+              {savingTemplates ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : templatesSaveSuccess ? <CheckCircle className="h-4 w-4 mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+              {templatesSaveSuccess ? 'Saved!' : 'Save templates'}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Coupons — same-size card with scrollable small coupon cards */}
+        <Card className="border-0 shadow-lg flex flex-col min-h-[420px]">
+          <CardHeader className="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-t-lg">
+            <CardTitle className="flex items-center gap-2">
+              <Tag className="h-5 w-5" />
+              Coupon Codes
+            </CardTitle>
+            <CardDescription className="text-amber-100">
+              Create coupon codes for a percentage discount. Participants enter the code at checkout.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6 flex flex-col flex-1 min-h-0">
+            <div className="flex flex-wrap gap-3 items-end mb-4">
+              <div className="space-y-1">
+                <Label className="text-sm">Code</Label>
+                <Input
+                  value={couponForm.code}
+                  onChange={(e) => setCouponForm(f => ({ ...f, code: e.target.value.toUpperCase() }))}
+                  placeholder="e.g. EARLY10"
+                  className="w-32"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-sm">Discount %</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={couponForm.discountPercent}
+                  onChange={(e) => setCouponForm(f => ({ ...f, discountPercent: e.target.value }))}
+                  placeholder="10"
+                  className="w-20"
+                />
+              </div>
+              <Button onClick={handleCreateCoupon} disabled={savingCoupon} size="sm" className="bg-amber-500 hover:bg-amber-600">
+                {savingCoupon ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+                Add
+              </Button>
+            </div>
+            <div className="flex-1 min-h-[220px] overflow-y-auto rounded-lg border border-slate-200 bg-slate-50/50 p-2">
+              {loadingCoupons ? (
+                <div className="flex items-center justify-center h-full min-h-[200px]">
+                  <Loader2 className="h-6 w-6 animate-spin text-amber-500" />
+                </div>
+              ) : coupons.length === 0 ? (
+                <div className="flex items-center justify-center h-full min-h-[200px] text-sm text-slate-500">
+                  No coupons yet. Add one above.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {coupons.map((c) => (
+                    <div
+                      key={c.id}
+                      className="flex items-center justify-between gap-2 p-3 bg-white border border-slate-200 rounded-lg shadow-sm hover:shadow transition-shadow min-h-[72px]"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="font-mono font-semibold text-slate-800 truncate">{c.code}</p>
+                        <p className="text-xs text-slate-600">{c.discount_percent}% off</p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteCoupon(c.id)}
+                        disabled={deletingCouponId === c.id}
+                        className="flex-shrink-0 h-8 w-8 p-0 text-red-600 border-red-200 hover:bg-red-50"
+                      >
+                        {deletingCouponId === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

@@ -51,6 +51,21 @@ async function run() {
       )
     `;
     console.log('✅ match_schedules table ensured');
+    await sql`ALTER TABLE sport_groups ADD COLUMN IF NOT EXISTS gender TEXT NOT NULL DEFAULT 'boys'`;
+    console.log('✅ sport_groups.gender column ensured');
+    // Switch unique constraint from (game_name) to (game_name, gender) so ON CONFLICT works
+    try {
+      await sql`ALTER TABLE sport_groups DROP CONSTRAINT IF EXISTS sport_groups_game_name_key`;
+      await sql`ALTER TABLE sport_groups ADD CONSTRAINT sport_groups_game_name_gender_key UNIQUE (game_name, gender)`;
+      console.log('✅ sport_groups unique constraint (game_name, gender) ensured');
+    } catch (e) {
+      const msg = e.message || '';
+      if (msg.includes('already exists') || msg.includes('duplicate key')) {
+        console.log('ℹ️  sport_groups constraint already in place or has duplicates');
+      } else {
+        console.log('ℹ️  sport_groups constraint:', msg);
+      }
+    }
     console.log('Done. Log out and log back in as hoi/hof so the session stores your role.');
   } catch (err) {
     console.error('❌ Migration failed:', err.message);
