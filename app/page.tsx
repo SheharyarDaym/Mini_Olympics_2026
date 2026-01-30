@@ -6,47 +6,72 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Trophy, Users, Calendar, Shield, Zap, Award, ArrowRight, Medal, Flame, Star, Gamepad2, Target, Dumbbell } from 'lucide-react';
 
 export default function Home() {
-  // All games with icons and colors
+  // All games with icons and colors (player format: 1p, 2p, ♂ 11p ♀ 5p, team)
   const teamSports = [
-    { name: 'Cricket', icon: '🏏', color: 'from-emerald-500 to-green-600', players: '11v11' },
-    { name: 'Football', icon: '⚽', color: 'from-green-500 to-teal-600', players: '11v11' },
-    { name: 'Hockey', icon: '🏑', color: 'from-blue-500 to-indigo-600', players: '11v11' },
-    { name: 'Kabaddi', icon: '🤼', color: 'from-orange-500 to-red-600', players: '7v7' },
-    { name: 'Swimming', icon: '🏊', color: 'from-cyan-500 to-blue-600' },
-    { name: 'Tug of War', icon: '🪢', color: 'from-amber-500 to-orange-600', players: '10v10' },
-    { name: 'Double Wicket', icon: '🏏', color: 'from-lime-500 to-green-600', players: '2v2' },
-    { name: 'Pitho Gol Garam', icon: '🎯', color: 'from-rose-500 to-pink-600', players: '6v6' },
+    { name: 'Cricket', icon: '🏏', color: 'from-emerald-500 to-green-600', players: '♂ 11p, ♀ 5p' },
+    { name: 'Football', icon: '⚽', color: 'from-green-500 to-teal-600', players: '♂ 11p, ♀ 6p' },
+    { name: 'Hockey', icon: '🏑', color: 'from-blue-500 to-indigo-600', players: '10p' },
+    { name: 'Kabaddi', icon: '🤼', color: 'from-orange-500 to-red-600', players: '7p' },
+    { name: 'Handball', icon: '🤾', color: 'from-teal-500 to-cyan-600', players: '7p' },
+    { name: 'Volleyball', icon: '🏐', color: 'from-amber-500 to-yellow-600', players: '8p' },
+    { name: 'Frisbee', icon: '🥏', color: 'from-sky-500 to-blue-600', players: '6p' },
+    { name: 'Pitho Gol Garam', icon: '🎯', color: 'from-rose-500 to-pink-600', players: '6p' },
+    { name: 'Tug of War', icon: '🪢', color: 'from-amber-500 to-orange-600', players: '♂ 10p, ♀ 6p' },
+    { name: 'Double Wicket', icon: '🏏', color: 'from-lime-500 to-green-600', players: '2p' },
+    { name: 'Basketball (1 vs 1)', icon: '🏀', color: 'from-orange-600 to-red-600', players: '1p' },
+    { name: 'Swimming', icon: '🏊', color: 'from-cyan-500 to-blue-600', players: '1p' },
   ];
 
   const racketSports = [
-    { name: 'Badminton Singles', icon: '🏸', color: 'from-purple-500 to-violet-600' },
-    { name: 'Badminton Doubles', icon: '🏸', color: 'from-violet-500 to-purple-600', players: '2v2' },
-    { name: 'Table Tennis Singles', icon: '🏓', color: 'from-orange-500 to-red-600' },
-    { name: 'Table Tennis Doubles', icon: '🏓', color: 'from-red-500 to-orange-600', players: '2v2' },
+    { name: 'Badminton Singles', icon: '🏸', color: 'from-purple-500 to-violet-600', players: '1p' },
+    { name: 'Badminton Doubles', icon: '🏸', color: 'from-violet-500 to-purple-600', players: '2p' },
+    { name: 'Table Tennis Singles', icon: '🏓', color: 'from-orange-500 to-red-600', players: '1p' },
+    { name: 'Table Tennis Doubles', icon: '🏓', color: 'from-red-500 to-orange-600', players: '2p' },
   ];
 
   const boardGames = [
-    { name: 'Chess', icon: '♟️', color: 'from-slate-600 to-slate-800' },
-    { name: 'Ludo Singles', icon: '🎲', color: 'from-blue-500 to-indigo-600' },
-    { name: 'Ludo Doubles', icon: '🎲', color: 'from-indigo-500 to-blue-600', players: '2v2' },
-    { name: 'Carrom Singles', icon: '⚫', color: 'from-amber-600 to-yellow-700' },
-    { name: 'Carrom Doubles', icon: '⚫', color: 'from-yellow-600 to-amber-700', players: '2v2' },
-    { name: 'Jenga', icon: '🧱', color: 'from-orange-400 to-amber-500' },
-    { name: 'Uno', icon: '🃏', color: 'from-red-500 to-rose-600' },
+    { name: 'Chess', icon: '♟️', color: 'from-slate-600 to-slate-800', players: '1p' },
+    { name: 'Ludo Singles', icon: '🎲', color: 'from-blue-500 to-indigo-600', players: '1p' },
+    { name: 'Ludo Doubles', icon: '🎲', color: 'from-indigo-500 to-blue-600', players: '2p' },
+    { name: 'Carrom Singles', icon: '⚫', color: 'from-amber-600 to-yellow-700', players: '1p' },
+    { name: 'Carrom Doubles', icon: '⚫', color: 'from-yellow-600 to-amber-700', players: '2p' },
+    { name: 'Jenga', icon: '🧱', color: 'from-orange-400 to-amber-500', players: '1p' },
+    { name: 'Uno', icon: '🃏', color: 'from-red-500 to-rose-600', players: '1p' },
+    { name: 'Pucket', icon: '🎱', color: 'from-emerald-600 to-teal-700', players: '1p' },
+  ];
+
+  const racesAndRelay = [
+    { name: '100m Race', icon: '🏃', color: 'from-amber-500 to-orange-600', players: '1p' },
+    { name: '3 Leg Race', icon: '🦵', color: 'from-orange-500 to-red-600', players: '2p' },
+    { name: 'Relay Race', icon: '🏁', color: 'from-red-500 to-rose-600', players: '' },
+    { name: 'Egg Relay Race', icon: '🥚', color: 'from-yellow-500 to-amber-600', players: '' },
   ];
 
   const funGames = [
-    { name: 'Foosball Doubles', icon: '⚽', color: 'from-cyan-500 to-blue-600', players: '2v2' },
-    { name: 'Darts Singles', icon: '🎯', color: 'from-rose-500 to-red-600' },
-    { name: 'Arm Wrestling', icon: '💪', color: 'from-purple-600 to-indigo-700' },
+    { name: 'Arm Wrestling', icon: '💪', color: 'from-purple-600 to-indigo-700', players: '1p' },
+    { name: 'Foosball Singles', icon: '⚽', color: 'from-cyan-500 to-blue-600', players: '1p' },
+    { name: 'Foosball Doubles', icon: '⚽', color: 'from-blue-500 to-cyan-600', players: '2p' },
+    { name: 'Darts Singles', icon: '🎯', color: 'from-rose-500 to-red-600', players: '1p' },
+    { name: 'Darts Doubles', icon: '🎯', color: 'from-red-500 to-rose-600', players: '2p' },
+    { name: '1v1 Penalty', icon: '⚽', color: 'from-green-600 to-emerald-700', players: '1p' },
+    { name: 'Archery', icon: '🏹', color: 'from-amber-700 to-orange-800', players: '1p' },
+    { name: 'Rifle Shooting', icon: '🎯', color: 'from-slate-600 to-zinc-700', players: '1p' },
+    { name: 'Gol Gappay Eating Challenge', icon: '🥢', color: 'from-pink-500 to-rose-600', players: '1p' },
+    { name: 'Plank', icon: '💪', color: 'from-stone-500 to-neutral-600', players: '1p' },
+    { name: 'Rope Jump', icon: '🪢', color: 'from-lime-500 to-green-600', players: '1p' },
+    { name: 'Rubik\'s Cube', icon: '🧊', color: 'from-blue-600 to-indigo-700', players: '1p' },
+    { name: 'Thula', icon: '🪨', color: 'from-stone-600 to-slate-700', players: '1p' },
   ];
 
   const esports = [
-    { name: 'Fifa', icon: '⚽', color: 'from-green-500 to-emerald-600' },
-    { name: 'Tekken', icon: '🥊', color: 'from-red-500 to-orange-600' },
-    { name: 'Call of Duty', icon: '🔫', color: 'from-slate-600 to-zinc-700' },
-    { name: 'PUBG', icon: '🎯', color: 'from-amber-500 to-yellow-600' },
-    { name: 'Subway Surfers', icon: '🏃', color: 'from-cyan-500 to-blue-500' },
+    { name: 'Fifa', icon: '⚽', color: 'from-green-500 to-emerald-600', players: '1p' },
+    { name: 'Tekken', icon: '🥊', color: 'from-red-500 to-orange-600', players: '1p' },
+    { name: 'Call of Duty Mobile', icon: '🔫', color: 'from-slate-600 to-zinc-700', players: '1p' },
+    { name: 'PUBG', icon: '🎯', color: 'from-amber-500 to-yellow-600', players: '1p' },
+    { name: 'Subway Surfers', icon: '🏃', color: 'from-cyan-500 to-blue-500', players: '1p' },
+    { name: 'Blur (Racing)', icon: '🏎️', color: 'from-slate-500 to-zinc-600', players: '1p' },
+    { name: 'Piano Tiles', icon: '🎹', color: 'from-black to-slate-800', players: '1p' },
+    { name: 'Squid Game', icon: '🦑', color: 'from-pink-600 to-rose-700', players: '1p' },
   ];
 
   const GameCard = ({ game, size = 'normal' }: { game: { name: string; icon: string; color: string; players?: string }; size?: 'normal' | 'small' }) => (
@@ -104,7 +129,7 @@ export default function Home() {
               <span className="text-white">Sports OC</span>
             </h1>
             <p className="text-xl sm:text-2xl md:text-3xl text-blue-200 mb-4 font-light">
-              21+ Games • One Championship • Unlimited Glory
+              50+ Games • One Championship • Unlimited Glory
             </p>
             <p className="text-sm sm:text-lg text-slate-400 mb-10 max-w-2xl mx-auto px-4">
               Join the most exciting sports competition in FCIT history. From Cricket to Chess, FIFA to Foosball - find your game and compete for glory!
@@ -131,7 +156,7 @@ export default function Home() {
         <div className="text-center mb-12 sm:mb-16">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/20 backdrop-blur-sm border border-blue-400/30 rounded-full mb-4">
             <Trophy className="h-4 w-4 text-blue-400" />
-            <span className="text-sm font-semibold text-blue-300">21+ Events</span>
+            <span className="text-sm font-semibold text-blue-300">50+ Events</span>
           </div>
           <h2 className="text-3xl sm:text-5xl font-bold text-white mb-4">All Games & Sports</h2>
           <p className="text-lg sm:text-xl text-slate-400">Choose your battlefield and dominate the competition</p>
@@ -176,8 +201,22 @@ export default function Home() {
               <h3 className="text-xl sm:text-2xl font-bold text-white">Board & Card Games</h3>
               <div className="flex-1 h-px bg-gradient-to-r from-amber-500/50 to-transparent"></div>
             </div>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2 sm:gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 gap-2 sm:gap-3">
               {boardGames.map((game) => <GameCard key={game.name} game={game} size="small" />)}
+            </div>
+          </div>
+
+          {/* Races & Relay */}
+          <div>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2.5 bg-gradient-to-br from-amber-500 to-red-600 rounded-xl shadow-lg">
+                <Zap className="h-5 w-5 text-white" />
+              </div>
+              <h3 className="text-xl sm:text-2xl font-bold text-white">Races & Relay</h3>
+              <div className="flex-1 h-px bg-gradient-to-r from-amber-500/50 to-transparent"></div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+              {racesAndRelay.map((game) => <GameCard key={game.name} game={game} />)}
             </div>
           </div>
 
@@ -190,8 +229,8 @@ export default function Home() {
               <h3 className="text-xl sm:text-2xl font-bold text-white">Fun & Skill Games</h3>
               <div className="flex-1 h-px bg-gradient-to-r from-cyan-500/50 to-transparent"></div>
             </div>
-            <div className="grid grid-cols-3 gap-3 sm:gap-4 max-w-lg">
-              {funGames.map((game) => <GameCard key={game.name} game={game} />)}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3">
+              {funGames.map((game) => <GameCard key={game.name} game={game} size="small" />)}
             </div>
           </div>
 
@@ -220,7 +259,7 @@ export default function Home() {
                 <div className="inline-flex p-4 bg-amber-500/20 rounded-2xl mb-4 group-hover:scale-110 transition-transform duration-300">
                   <Medal className="h-8 w-8 sm:h-10 sm:w-10 text-amber-400" />
                 </div>
-                <div className="text-3xl sm:text-6xl font-black mb-2 bg-gradient-to-r from-amber-300 to-orange-400 bg-clip-text text-transparent">21+</div>
+                <div className="text-3xl sm:text-6xl font-black mb-2 bg-gradient-to-r from-amber-300 to-orange-400 bg-clip-text text-transparent">50+</div>
                 <div className="text-sm sm:text-lg text-slate-300">Games & Events</div>
               </div>
               <div className="group">
