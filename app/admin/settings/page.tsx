@@ -67,8 +67,8 @@ export default function SettingsPage() {
   });
   // Defaults must match lib/email.ts so "what you see = what gets sent" until you save custom templates
   const [emailTemplates, setEmailTemplates] = useState({
-    email_registration_submitted_subject: 'Mini Olympics 2026 Registration',
-    email_registration_submitted_body: `<h2>Welcome to Mini Olympics 2026! 🏆</h2>
+    email_registration_submitted_online_subject: 'Mini Olympics 2026 Registration',
+    email_registration_submitted_online_body: `<h2>Welcome to Mini Olympics 2026! 🏆</h2>
 <p>Dear {{name}},</p>
 <p>Thank you for registering for the FCIT Sports Mini Olympics 2026. We're excited to have you on board!</p>
 <p>Your registration has been received and is currently being processed.</p>
@@ -81,7 +81,26 @@ export default function SettingsPage() {
 </ul>
 <p><strong>What's Next?</strong></p>
 <ul>
-  <li>{{paymentNext}}</li>
+  <li>You'll be notified once your payment is verified</li>
+  <li>Join the WhatsApp groups for your registered games</li>
+  <li>Stay tuned for match schedules</li>
+</ul>
+<p>Good luck and may the best athlete win!</p>`,
+    email_registration_submitted_cash_subject: 'Mini Olympics 2026 Registration',
+    email_registration_submitted_cash_body: `<h2>Welcome to Mini Olympics 2026! 🏆</h2>
+<p>Dear {{name}},</p>
+<p>Thank you for registering for the FCIT Sports Mini Olympics 2026. We're excited to have you on board!</p>
+<p>Your registration has been received and is currently being processed.</p>
+<p><strong>Ticket #:</strong> {{regNum}}</p>
+<p><strong>Reference / Slip ID:</strong> {{slipId}}</p>
+<p><strong>Team name:</strong> {{teamName}}</p>
+<p><strong>Registered game(s):</strong></p>
+<ul>
+{{gamesList}}
+</ul>
+<p><strong>What's Next?</strong></p>
+<ul>
+  <li>Submit the cash at the desk to complete the registration</li>
   <li>Join the WhatsApp groups for your registered games</li>
   <li>Stay tuned for match schedules</li>
 </ul>
@@ -102,7 +121,7 @@ export default function SettingsPage() {
   });
   const [savingTemplates, setSavingTemplates] = useState(false);
   const [templatesSaveSuccess, setTemplatesSaveSuccess] = useState(false);
-  const [selectedEmailTemplate, setSelectedEmailTemplate] = useState<'registration' | 'payment_received' | 'payment_rejected'>('registration');
+  const [selectedEmailTemplate, setSelectedEmailTemplate] = useState<'registration_online' | 'registration_cash' | 'payment_received' | 'payment_rejected'>('registration_online');
 
   // Games state
   const [games, setGames] = useState<GamePricing[]>([]);
@@ -146,8 +165,10 @@ export default function SettingsPage() {
           smtp_from_name: d.smtp_from_name || 'FCIT Sports Society',
         });
         setEmailTemplates(prev => ({
-          email_registration_submitted_subject: d.email_registration_submitted_subject !== undefined ? d.email_registration_submitted_subject : prev.email_registration_submitted_subject,
-          email_registration_submitted_body: d.email_registration_submitted_body !== undefined ? d.email_registration_submitted_body : prev.email_registration_submitted_body,
+          email_registration_submitted_online_subject: d.email_registration_submitted_online_subject !== undefined ? d.email_registration_submitted_online_subject : prev.email_registration_submitted_online_subject,
+          email_registration_submitted_online_body: d.email_registration_submitted_online_body !== undefined ? d.email_registration_submitted_online_body : prev.email_registration_submitted_online_body,
+          email_registration_submitted_cash_subject: d.email_registration_submitted_cash_subject !== undefined ? d.email_registration_submitted_cash_subject : prev.email_registration_submitted_cash_subject,
+          email_registration_submitted_cash_body: d.email_registration_submitted_cash_body !== undefined ? d.email_registration_submitted_cash_body : prev.email_registration_submitted_cash_body,
           email_payment_received_subject: d.email_payment_received_subject !== undefined ? d.email_payment_received_subject : prev.email_payment_received_subject,
           email_payment_received_body: d.email_payment_received_body !== undefined ? d.email_payment_received_body : prev.email_payment_received_body,
           email_payment_rejected_subject: d.email_payment_rejected_subject !== undefined ? d.email_payment_rejected_subject : prev.email_payment_rejected_subject,
@@ -621,7 +642,7 @@ export default function SettingsPage() {
               Automated Email Templates
             </CardTitle>
             <CardDescription className="text-teal-100">
-              Edit one template at a time. Placeholders: name, regNum, slipId, teamName, gamesList, paymentNext, paymentAction.
+              Edit one template at a time. Placeholders: name, regNum, slipId, teamName, gamesList. For Payment rejected: paymentAction.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6 flex flex-col flex-1 min-h-0">
@@ -633,7 +654,8 @@ export default function SettingsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="registration">Registration submitted</SelectItem>
+                    <SelectItem value="registration_online">Registration submitted (online)</SelectItem>
+                    <SelectItem value="registration_cash">Registration submitted (cash)</SelectItem>
                     <SelectItem value="payment_received">Payment received (confirmed)</SelectItem>
                     <SelectItem value="payment_rejected">Payment rejected</SelectItem>
                   </SelectContent>
@@ -643,15 +665,18 @@ export default function SettingsPage() {
                 <Label className="text-sm">Subject</Label>
                 <Input
                   value={
-                    selectedEmailTemplate === 'registration'
-                      ? emailTemplates.email_registration_submitted_subject
-                      : selectedEmailTemplate === 'payment_received'
-                        ? emailTemplates.email_payment_received_subject
-                        : emailTemplates.email_payment_rejected_subject
+                    selectedEmailTemplate === 'registration_online'
+                      ? emailTemplates.email_registration_submitted_online_subject
+                      : selectedEmailTemplate === 'registration_cash'
+                        ? emailTemplates.email_registration_submitted_cash_subject
+                        : selectedEmailTemplate === 'payment_received'
+                          ? emailTemplates.email_payment_received_subject
+                          : emailTemplates.email_payment_rejected_subject
                   }
                   onChange={(e) => {
                     const v = e.target.value;
-                    if (selectedEmailTemplate === 'registration') setEmailTemplates(t => ({ ...t, email_registration_submitted_subject: v }));
+                    if (selectedEmailTemplate === 'registration_online') setEmailTemplates(t => ({ ...t, email_registration_submitted_online_subject: v }));
+                    else if (selectedEmailTemplate === 'registration_cash') setEmailTemplates(t => ({ ...t, email_registration_submitted_cash_subject: v }));
                     else if (selectedEmailTemplate === 'payment_received') setEmailTemplates(t => ({ ...t, email_payment_received_subject: v }));
                     else setEmailTemplates(t => ({ ...t, email_payment_rejected_subject: v }));
                   }}
@@ -660,15 +685,18 @@ export default function SettingsPage() {
                 <Label className="text-sm">Body (HTML)</Label>
                 <textarea
                   value={
-                    selectedEmailTemplate === 'registration'
-                      ? emailTemplates.email_registration_submitted_body
-                      : selectedEmailTemplate === 'payment_received'
-                        ? emailTemplates.email_payment_received_body
-                        : emailTemplates.email_payment_rejected_body
+                    selectedEmailTemplate === 'registration_online'
+                      ? emailTemplates.email_registration_submitted_online_body
+                      : selectedEmailTemplate === 'registration_cash'
+                        ? emailTemplates.email_registration_submitted_cash_body
+                        : selectedEmailTemplate === 'payment_received'
+                          ? emailTemplates.email_payment_received_body
+                          : emailTemplates.email_payment_rejected_body
                   }
                   onChange={(e) => {
                     const v = e.target.value;
-                    if (selectedEmailTemplate === 'registration') setEmailTemplates(t => ({ ...t, email_registration_submitted_body: v }));
+                    if (selectedEmailTemplate === 'registration_online') setEmailTemplates(t => ({ ...t, email_registration_submitted_online_body: v }));
+                    else if (selectedEmailTemplate === 'registration_cash') setEmailTemplates(t => ({ ...t, email_registration_submitted_cash_body: v }));
                     else if (selectedEmailTemplate === 'payment_received') setEmailTemplates(t => ({ ...t, email_payment_received_body: v }));
                     else setEmailTemplates(t => ({ ...t, email_payment_rejected_body: v }));
                   }}

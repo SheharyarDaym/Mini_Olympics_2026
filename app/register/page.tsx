@@ -839,13 +839,13 @@ export default function RegisterPage() {
                             </div>
                             <div>
                               <Label className="text-xs sm:text-sm text-gray-600">Account Name</Label>
-                              <p className="font-semibold text-base sm:text-lg">Ali Bakht Jafry</p>
+                              <p className="font-semibold text-base sm:text-lg">Muhammad Moin U Din</p>
                             </div>
                             <div>
                               <Label className="text-xs sm:text-sm text-gray-600">Account Number</Label>
                               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-1">
                                 <p className="font-mono font-semibold text-base sm:text-lg text-blue-700 break-all">
-                                  03054517559
+                                  03028791634
                                 </p>
                                 <Button
                                   type="button"

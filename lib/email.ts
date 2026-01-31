@@ -101,7 +101,7 @@ ${EMAIL_FOOTER_ICONS}
 /** Single subject for all registration emails so they stay in one thread */
 const EMAIL_SUBJECT_ALL = 'Mini Olympics 2026 Registration';
 
-const DEFAULT_REGISTRATION_SUBMITTED_BODY = `
+const DEFAULT_REGISTRATION_SUBMITTED_ONLINE_BODY = `
 <h2>Welcome to Mini Olympics 2026! 🏆</h2>
 <p>Dear {{name}},</p>
 <p>Thank you for registering for the FCIT Sports Mini Olympics 2026. We're excited to have you on board!</p>
@@ -115,7 +115,28 @@ const DEFAULT_REGISTRATION_SUBMITTED_BODY = `
 </ul>
 <p><strong>What's Next?</strong></p>
 <ul>
-  <li>{{paymentNext}}</li>
+  <li>You'll be notified once your payment is verified</li>
+  <li>Join the WhatsApp groups for your registered games</li>
+  <li>Stay tuned for match schedules</li>
+</ul>
+<p>Good luck and may the best athlete win!</p>
+`;
+
+const DEFAULT_REGISTRATION_SUBMITTED_CASH_BODY = `
+<h2>Welcome to Mini Olympics 2026! 🏆</h2>
+<p>Dear {{name}},</p>
+<p>Thank you for registering for the FCIT Sports Mini Olympics 2026. We're excited to have you on board!</p>
+<p>Your registration has been received and is currently being processed.</p>
+<p><strong>Ticket #:</strong> {{regNum}}</p>
+<p><strong>Reference / Slip ID:</strong> {{slipId}}</p>
+<p><strong>Team name:</strong> {{teamName}}</p>
+<p><strong>Registered game(s):</strong></p>
+<ul>
+{{gamesList}}
+</ul>
+<p><strong>What's Next?</strong></p>
+<ul>
+  <li>Submit the cash at the desk to complete the registration</li>
   <li>Join the WhatsApp groups for your registered games</li>
   <li>Stay tuned for match schedules</li>
 </ul>
@@ -139,8 +160,6 @@ const DEFAULT_PAYMENT_NOT_RECEIVED_BODY = `
 <p>{{paymentAction}}</p>
 `;
 
-const PAYMENT_NEXT_CASH = 'Please bring the cash to the desk to complete your registration.';
-const PAYMENT_NEXT_ONLINE = 'Please share your payment receipt in reply to this email to complete verification.';
 const PAYMENT_ACTION_CASH = 'Please bring the cash to the desk to complete your registration.';
 const PAYMENT_ACTION_ONLINE = 'If you have already paid, please share your payment receipt in reply to this email. Otherwise, please complete your payment and share the receipt in reply.';
 
@@ -153,16 +172,19 @@ export async function sendRegistrationSubmittedEmail(params: {
   teamName: string;
   gamesList: string; // HTML list items, e.g. "<li>FIFA</li><li>Tekken</li>"
 }): Promise<void> {
-  const s = await getEmailTemplate('email_registration_submitted_subject');
+  const isOnline = params.paymentMethod === 'online';
+  const subjectKey = isOnline ? 'email_registration_submitted_online_subject' : 'email_registration_submitted_cash_subject';
+  const bodyKey = isOnline ? 'email_registration_submitted_online_body' : 'email_registration_submitted_cash_body';
+  const defaultBody = isOnline ? DEFAULT_REGISTRATION_SUBMITTED_ONLINE_BODY : DEFAULT_REGISTRATION_SUBMITTED_CASH_BODY;
+
+  const s = await getEmailTemplate(subjectKey);
   const subject = (s != null && s.trim() !== '') ? s : EMAIL_SUBJECT_ALL;
-  const b = await getEmailTemplate('email_registration_submitted_body');
-  const bodyTemplate = (b != null && b.trim() !== '') ? b : DEFAULT_REGISTRATION_SUBMITTED_BODY;
-  const paymentNext = params.paymentMethod === 'cash' ? PAYMENT_NEXT_CASH : PAYMENT_NEXT_ONLINE;
+  const b = await getEmailTemplate(bodyKey);
+  const bodyTemplate = (b != null && b.trim() !== '') ? b : defaultBody;
   const innerHtml = interpolateTemplate(bodyTemplate, {
     name: params.name,
     regNum: String(params.regNum),
     slipId: params.slipId,
-    paymentNext,
     teamName: params.teamName,
     gamesList: params.gamesList,
   });
