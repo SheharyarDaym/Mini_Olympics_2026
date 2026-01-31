@@ -71,6 +71,7 @@ export default function SuperAdminPage() {
   const [formData, setFormData] = useState({
     gameName: '',
     gender: 'boys' as 'boys' | 'girls',
+    applyToBoth: false,
     groupTitle: '',
     groupUrl: '',
     coordinatorName: '',
@@ -111,9 +112,11 @@ export default function SuperAdminPage() {
   const loadGroups = async () => {
     setGroupsLoading(true);
     try {
-      const res = await fetch('/api/admin/sport-groups', { cache: 'no-store' });
+      const res = await fetch(`/api/admin/sport-groups?t=${Date.now()}`, { cache: 'no-store', headers: { Pragma: 'no-cache' } });
       const data = await res.json();
-      if (data.success) setGroups(data.data || []);
+      if (data.success && Array.isArray(data.data)) {
+        setGroups(data.data);
+      }
     } finally {
       setGroupsLoading(false);
     }
@@ -124,6 +127,7 @@ export default function SuperAdminPage() {
     setFormData({
       gameName: '',
       gender,
+      applyToBoth: false,
       groupTitle: '',
       groupUrl: '',
       coordinatorName: '',
@@ -154,32 +158,74 @@ export default function SuperAdminPage() {
 
     setSaving(true);
     try {
-      const method = editingGroup ? 'PUT' : 'POST';
-      const body = {
-        ...(editingGroup && { id: editingGroup.id }),
-        gameName: formData.gameName,
-        gender: formData.gender,
-        groupTitle: formData.groupTitle || `${formData.gameName} (${formData.gender === 'boys' ? 'Male' : 'Female'})`,
-        groupUrl: formData.groupUrl || null,
-        coordinatorName: formData.coordinatorName || null,
-        coordinatorPhone: formData.coordinatorPhone || null,
-        messageTemplate: formData.messageTemplate || null,
-        isActive: formData.isActive,
-      };
-
-      const res = await fetch('/api/admin/sport-groups', {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        setDialogOpen(false);
-        loadGroups();
-      } else {
-        alert('Failed: ' + (data.error || 'Unknown error'));
+      if (editingGroup) {
+        const body = {
+          id: editingGroup.id,
+          gameName: formData.gameName,
+          gender: formData.gender,
+          groupTitle: formData.groupTitle || `${formData.gameName} (${formData.gender === 'boys' ? 'Male' : 'Female'})`,
+          groupUrl: formData.groupUrl || null,
+          coordinatorName: formData.coordinatorName || null,
+          coordinatorPhone: formData.coordinatorPhone || null,
+          messageTemplate: formData.messageTemplate || null,
+          isActive: formData.isActive,
+        };
+        const res = await fetch('/api/admin/sport-groups', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        let data: { success?: boolean; error?: string };
+        try {
+          data = await res.json();
+        } catch (_) {
+          const text = await res.text().catch(() => '');
+          alert('Server returned invalid response. Status: ' + res.status + (text ? '. Check console.' : ''));
+          return;
+        }
+        if (data.success) {
+          setDialogOpen(false);
+          await loadGroups();
+        } else {
+          alert('Failed: ' + (data.error || 'Unknown error'));
+        }
+        return;
       }
+
+      const gendersToCreate: ('boys' | 'girls')[] = formData.applyToBoth ? ['boys', 'girls'] : [formData.gender];
+      const groupTitle = formData.groupTitle || (formData.applyToBoth ? formData.gameName : `${formData.gameName} (${formData.gender === 'boys' ? 'Male' : 'Female'})`);
+
+      for (const gender of gendersToCreate) {
+        const body = {
+          gameName: formData.gameName,
+          gender,
+          groupTitle: formData.applyToBoth ? `${formData.gameName} (${gender === 'boys' ? 'Male' : 'Female'})` : groupTitle,
+          groupUrl: formData.groupUrl || null,
+          coordinatorName: formData.coordinatorName || null,
+          coordinatorPhone: formData.coordinatorPhone || null,
+          messageTemplate: formData.messageTemplate || null,
+          isActive: formData.isActive,
+        };
+        const res = await fetch('/api/admin/sport-groups', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        let data: { success?: boolean; error?: string };
+        try {
+          data = await res.json();
+        } catch (_) {
+          const text = await res.text().catch(() => '');
+          alert('Server returned invalid response (not JSON). Status: ' + res.status + '. If you see a syntax error, the server may have returned an error page.');
+          return;
+        }
+        if (!data.success) {
+          alert('Failed: ' + (data.error || 'Unknown error'));
+          return;
+        }
+      }
+      setDialogOpen(false);
+      await loadGroups();
     } finally {
       setSaving(false);
     }
@@ -191,7 +237,7 @@ export default function SuperAdminPage() {
     try {
       const res = await fetch(`/api/admin/sport-groups?id=${group.id}`, { method: 'DELETE' });
       const data = await res.json();
-      if (data.success) loadGroups();
+      if (data.success) await loadGroups();
       else alert('Failed: ' + (data.error || 'Unknown error'));
     } catch {
       alert('Failed to delete');
@@ -205,7 +251,7 @@ export default function SuperAdminPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: group.id, isActive: !group.is_active }),
       });
-      if ((await res.json()).success) loadGroups();
+      if ((await res.json()).success) await loadGroups();
     } catch {}
   };
 
@@ -395,6 +441,7 @@ export default function SuperAdminPage() {
                     setFormData({
                       gameName,
                       gender: genderTab,
+                      applyToBoth: false,
                       groupTitle: `${gameName} (${genderTab === 'boys' ? 'Male' : 'Female'})`,
                       groupUrl: '',
                       coordinatorName: '',
@@ -420,14 +467,26 @@ export default function SuperAdminPage() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              {formData.gender === 'boys' ? (
+              {editingGroup ? (
+                formData.gender === 'boys' ? (
+                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-sm">♂ Male</span>
+                ) : (
+                  <span className="px-2 py-0.5 bg-pink-100 text-pink-700 rounded text-sm">♀ Female</span>
+                )
+              ) : formData.applyToBoth ? (
+                <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-sm">♂♀ Both</span>
+              ) : formData.gender === 'boys' ? (
                 <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-sm">♂ Male</span>
               ) : (
                 <span className="px-2 py-0.5 bg-pink-100 text-pink-700 rounded text-sm">♀ Female</span>
               )}
               {editingGroup ? 'Edit Sport Group' : 'Add Sport Group'}
             </DialogTitle>
-            <DialogDescription>Configure the WhatsApp group link and coordinator details for {formData.gender}.</DialogDescription>
+            <DialogDescription>
+              {!editingGroup && formData.applyToBoth
+                ? 'Same WhatsApp link and details will be created for both Male and Female.'
+                : `Configure the WhatsApp group link and coordinator details for ${formData.gender}.`}
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
@@ -437,7 +496,7 @@ export default function SuperAdminPage() {
                 {editingGroup ? (
                   <Input value={formData.gameName} disabled className="bg-slate-50" />
                 ) : (
-                  <Select value={formData.gameName} onValueChange={(v) => setFormData({ ...formData, gameName: v, groupTitle: `${v} (${formData.gender === 'boys' ? 'Male' : 'Female'})` })}>
+                  <Select value={formData.gameName} onValueChange={(v) => setFormData({ ...formData, gameName: v, groupTitle: formData.applyToBoth ? v : `${v} (${formData.gender === 'boys' ? 'Male' : 'Female'})` })}>
                     <SelectTrigger><SelectValue placeholder="Select a game" /></SelectTrigger>
                     <SelectContent>
                       {availableGames.map((name) => (
@@ -447,16 +506,33 @@ export default function SuperAdminPage() {
                   </Select>
                 )}
               </div>
-              <div className="space-y-2">
-                <Label>Gender</Label>
-                <Select value={formData.gender} onValueChange={(v) => setFormData({ ...formData, gender: v as 'boys' | 'girls' })} disabled={!!editingGroup}>
-                  <SelectTrigger className={editingGroup ? 'bg-slate-50' : ''}><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="boys">Male</SelectItem>
-                    <SelectItem value="girls">Female</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {!editingGroup && (
+                <div className="space-y-2 flex flex-col justify-end">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="applyToBoth"
+                      checked={formData.applyToBoth}
+                      onChange={(e) => setFormData({ ...formData, applyToBoth: e.target.checked, groupTitle: e.target.checked ? formData.gameName : `${formData.gameName} (${formData.gender === 'boys' ? 'Male' : 'Female'})` })}
+                      className="w-4 h-4 rounded"
+                    />
+                    <Label htmlFor="applyToBoth" className="font-normal cursor-pointer">Same group for both Male & Female</Label>
+                  </div>
+                  <p className="text-xs text-slate-500">Creates one entry for Male and one for Female with the same URL and details.</p>
+                </div>
+              )}
+              {!formData.applyToBoth && (
+                <div className="space-y-2">
+                  <Label>Gender</Label>
+                  <Select value={formData.gender} onValueChange={(v) => setFormData({ ...formData, gender: v as 'boys' | 'girls', groupTitle: formData.gameName ? `${formData.gameName} (${v === 'boys' ? 'Male' : 'Female'})` : '' })} disabled={!!editingGroup}>
+                    <SelectTrigger className={editingGroup ? 'bg-slate-50' : ''}><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="boys">Male</SelectItem>
+                      <SelectItem value="girls">Female</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
             
             <div className="space-y-2">

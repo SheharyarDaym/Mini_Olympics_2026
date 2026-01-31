@@ -42,7 +42,15 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ success: true, data: groups });
+    // Ensure every row has gender 'boys' or 'girls' so the UI tabs show them
+    const normalized = (groups as any[]).map((r) => ({
+      ...r,
+      gender: r.gender === 'girls' ? 'girls' : 'boys',
+    }));
+
+    const response = NextResponse.json({ success: true, data: normalized });
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    return response;
   } catch (error: any) {
     console.error('Fetch sport groups error:', error);
     return NextResponse.json(
@@ -99,37 +107,17 @@ export async function POST(request: NextRequest) {
     } catch (err: any) {
       const msg = err?.message || '';
       const code = err?.code ? String(err.code) : '';
-      const isConflictError = msg.includes('no unique or exclusion constraint') || msg.includes('ON CONFLICT');
-      const isNoGenderColumn = code === '42703';
-      if (isConflictError) {
-        await sql`
-          INSERT INTO sport_groups (id, game_name, gender, group_title, group_url, coordinator_name, coordinator_phone, message_template, is_active, updated_at)
-          VALUES (${id}, ${gameName}, ${genderValue}, ${groupTitle || gameName}, ${groupUrl || null}, ${coordinatorName || null}, ${coordinatorPhone || null}, ${messageTemplate || null}, ${isActiveVal}, NOW())
-          ON CONFLICT (game_name) DO UPDATE SET
-            group_title = EXCLUDED.group_title,
-            group_url = EXCLUDED.group_url,
-            coordinator_name = EXCLUDED.coordinator_name,
-            coordinator_phone = EXCLUDED.coordinator_phone,
-            message_template = EXCLUDED.message_template,
-            is_active = EXCLUDED.is_active,
-            updated_at = NOW()
-        `;
-      } else if (isNoGenderColumn) {
-        await sql`
-          INSERT INTO sport_groups (id, game_name, group_title, group_url, coordinator_name, coordinator_phone, message_template, is_active, updated_at)
-          VALUES (${id}, ${gameName}, ${groupTitle || gameName}, ${groupUrl || null}, ${coordinatorName || null}, ${coordinatorPhone || null}, ${messageTemplate || null}, ${isActiveVal}, NOW())
-          ON CONFLICT (game_name) DO UPDATE SET
-            group_title = EXCLUDED.group_title,
-            group_url = EXCLUDED.group_url,
-            coordinator_name = EXCLUDED.coordinator_name,
-            coordinator_phone = EXCLUDED.coordinator_phone,
-            message_template = EXCLUDED.message_template,
-            is_active = EXCLUDED.is_active,
-            updated_at = NOW()
-        `;
-      } else {
-        throw err;
+      const missingGenderColumn = code === '42703';
+      const missingConstraint = msg.includes('no unique or exclusion constraint') || msg.includes('ON CONFLICT') || msg.includes('sport_groups_game_name_key');
+      if (missingGenderColumn || missingConstraint) {
+        return NextResponse.json(
+          {
+            error: 'Database needs migration for separate Male and Female groups. Run: node scripts/add-session-role-columns.js (with DATABASE_URL set). This adds the gender column and UNIQUE(game_name, gender) so Male and Female groups are stored separately.',
+          },
+          { status: 400 }
+        );
       }
+      throw err;
     }
 
     return NextResponse.json({ success: true, id });

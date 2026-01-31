@@ -61,6 +61,10 @@ export default function Home() {
     { name: 'Rope Jump', icon: '🪢', color: 'from-lime-500 to-green-600', players: '1p' },
     { name: 'Rubik\'s Cube', icon: '🧊', color: 'from-blue-600 to-indigo-700', players: '1p' },
     { name: 'Thula', icon: '🪨', color: 'from-stone-600 to-slate-700', players: '1p' },
+    { name: 'Squid Game', icon: '🦑', color: 'from-pink-600 to-rose-700', players: '1p' },
+    { name: 'Subway Surfers', icon: '🏃', color: 'from-cyan-500 to-blue-500', players: '1p' },
+    { name: 'Blur (Racing)', icon: '🏎️', color: 'from-slate-500 to-zinc-600', players: '1p' },
+    { name: 'Piano Tiles', icon: '🎹', color: 'from-black to-slate-800', players: '1p' },
   ];
 
   const esports = [
@@ -68,10 +72,6 @@ export default function Home() {
     { name: 'Tekken', icon: '🥊', color: 'from-red-500 to-orange-600', players: '1p' },
     { name: 'Call of Duty Mobile', icon: '🔫', color: 'from-slate-600 to-zinc-700', players: '1p' },
     { name: 'PUBG', icon: '🎯', color: 'from-amber-500 to-yellow-600', players: '1p' },
-    { name: 'Subway Surfers', icon: '🏃', color: 'from-cyan-500 to-blue-500', players: '1p' },
-    { name: 'Blur (Racing)', icon: '🏎️', color: 'from-slate-500 to-zinc-600', players: '1p' },
-    { name: 'Piano Tiles', icon: '🎹', color: 'from-black to-slate-800', players: '1p' },
-    { name: 'Squid Game', icon: '🦑', color: 'from-pink-600 to-rose-700', players: '1p' },
   ];
 
   const GameCard = ({ game, size = 'normal' }: { game: { name: string; icon: string; color: string; players?: string }; size?: 'normal' | 'small' }) => (
