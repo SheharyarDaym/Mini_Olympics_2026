@@ -143,6 +143,7 @@ export default function SuperAdminPage() {
     setFormData({
       gameName: group.game_name,
       gender: group.gender,
+      applyToBoth: false,
       groupTitle: group.group_title || '',
       groupUrl: group.group_url || '',
       coordinatorName: group.coordinator_name || '',
