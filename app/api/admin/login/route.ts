@@ -11,7 +11,10 @@ function hashPassword(password: string) {
   return `scrypt:${salt.toString('base64')}:${derivedKey.toString('base64')}`;
 }
 
-function verifyPassword(password: string, stored: string) {
+function verifyPassword(password: string, stored: string | null | undefined): boolean {
+  if (password === '' || stored === null || stored === undefined || typeof stored !== 'string') {
+    return false;
+  }
   // Legacy/plaintext compatibility (in case someone manually inserted a row)
   if (!stored.startsWith('scrypt:')) {
     return password === stored;
@@ -31,21 +34,8 @@ export async function POST(request: NextRequest) {
     const rawUsername = body?.username;
     const rawPassword = body?.password;
     const username = typeof rawUsername === 'string' ? rawUsername.trim() : '';
-    const password = typeof rawPassword === 'string' ? rawPassword : '';
+    const password = typeof rawPassword === 'string' ? rawPassword.trim() : '';
 
-    // Validate credentials (in production, use proper authentication)
-    const isProd = process.env.NODE_ENV === 'production';
-    const adminUsername = process.env.ADMIN_USERNAME || (isProd ? '' : 'admin');
-    const adminPassword = process.env.ADMIN_PASSWORD || (isProd ? '' : 'admin@fcit2025');
-
-    if (!adminUsername || !adminPassword) {
-      return NextResponse.json(
-        { error: 'Admin credentials not configured. Set ADMIN_USERNAME and ADMIN_PASSWORD.' },
-        { status: 500 }
-      );
-    }
-
-    // If DB schema isn't initialized (missing sessions table), login will never work.
     const sessionsTableCheck = await sql`
       SELECT EXISTS (
         SELECT FROM information_schema.tables
@@ -57,64 +47,61 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: 'Database is not initialized (admin_sessions table is missing).',
-          fix: 'Run ./scripts/db.sh init (or ./scripts/db.sh migrate) against the same DATABASE_URL.',
+          fix: 'Run DB migration against the same DATABASE_URL used in production.',
         },
         { status: 500 }
       );
     }
 
-    // If the provided credentials match env/defaults, allow login and keep DB user in sync.
-    // This avoids "Invalid credentials" when the admin_users row exists but has an old password hash.
-    const isEnvAdminLogin = username === adminUsername && password === adminPassword;
-
-    // Prefer DB-backed admin users if the table exists. If empty, bootstrap the default admin.
     const adminUsersTableCheck = await sql`
       SELECT EXISTS (
         SELECT FROM information_schema.tables
         WHERE table_schema = 'public' AND table_name = 'admin_users'
       ) AS exists
     `;
-
     const adminUsersTableExists = Boolean((adminUsersTableCheck as any)[0]?.exists);
 
     if (adminUsersTableExists) {
-      if (isEnvAdminLogin) {
-        await sql`
-          INSERT INTO admin_users (id, username, password_hash)
-          VALUES (${uuidv4()}, ${adminUsername}, ${hashPassword(adminPassword)})
-          ON CONFLICT (username) DO UPDATE
-          SET password_hash = EXCLUDED.password_hash,
-              updated_at = NOW()
-        `;
-      }
-
       const countRes = await sql`SELECT COUNT(*)::int AS count FROM admin_users`;
       const count = Number((countRes as any)[0]?.count) || 0;
 
+      // Only use env to create the very first admin when table is empty. Once users exist, only DB is used — env never overwrites DB (fixes production reverting after 1–2 days).
       if (count === 0) {
-        // Create initial admin user from env/defaults
-        await sql`
-          INSERT INTO admin_users (id, username, password_hash)
-          VALUES (${uuidv4()}, ${adminUsername}, ${hashPassword(adminPassword)})
-        `;
+        const adminUsername = (process.env.ADMIN_USERNAME ?? '').trim();
+        const adminPassword = (process.env.ADMIN_PASSWORD ?? '').trim();
+        const hasEnv = adminUsername !== '' && adminPassword !== '';
+        const envMatch = hasEnv && username === adminUsername && password === adminPassword;
+        if (envMatch) {
+          await sql`
+            INSERT INTO admin_users (id, username, password_hash)
+            VALUES (${uuidv4()}, ${adminUsername}, ${hashPassword(adminPassword)})
+          `;
+        } else {
+          return NextResponse.json(
+            { error: 'No admin users yet. Create one: node scripts/create-admin-node.js admin YourPassword' },
+            { status: 500 }
+          );
+        }
       }
 
       const userRes = await sql`SELECT * FROM admin_users WHERE username = ${username} LIMIT 1`;
       const user = (userRes as any)[0] || null;
+      const storedPassword = user?.password_hash ?? user?.password;
 
-      if (isEnvAdminLogin) {
-        // Always accept env admin login (even if DB verification fails due to mismatch).
-      } else
-      if (!user || !verifyPassword(password, user.password_hash)) {
+      // When table has any users: only DB verification. Env is never used and never overwrites the DB.
+      const accepted = user && verifyPassword(password, storedPassword);
+      if (!accepted) {
         return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
       }
-
-      // If we authenticated via DB user, attach it to the session.
-      // If we authenticated via env-admin and the row doesn't exist yet, try to fetch it.
-      const adminUserId = user?.id ? String(user.id) : null;
-      const role = user?.role ? String(user.role) : null;
     } else {
-      // Fallback: env/default credentials (for setups without admin_users table)
+      const adminUsername = (process.env.ADMIN_USERNAME ?? '').trim();
+      const adminPassword = (process.env.ADMIN_PASSWORD ?? '').trim();
+      if (!adminUsername || !adminPassword) {
+        return NextResponse.json(
+          { error: 'Admin users table missing. Set ADMIN_USERNAME and ADMIN_PASSWORD in production env, or run DB migration.' },
+          { status: 500 }
+        );
+      }
       if (username !== adminUsername || password !== adminPassword) {
         return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
       }
