@@ -586,14 +586,6 @@ export default function RegisterPage() {
                     </div>
                   )}
                 </div>
-                {(formData.selectedGames.includes('FIFA') || formData.selectedGames.includes('Tekken')) && (
-                  <div className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-300 rounded-xl mb-4">
-                    <p className="text-sm text-yellow-900 font-semibold flex items-center gap-2">
-                      <span className="text-xl">⚠️</span>
-                      <strong>OC esports</strong> matches will be held in OC on scheduled dates.
-                    </p>
-                  </div>
-                )}
                 {!formData.gender ? (
                   <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <p className="text-yellow-800">Please select your gender in Step 1 first.</p>
