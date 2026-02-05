@@ -42,7 +42,6 @@ export async function POST(request: NextRequest) {
       transactionId,
       screenshotUrl,
       couponCode,
-      discount: discountFromBody,
     } = body;
 
     // Validate required fields
@@ -76,8 +75,8 @@ export async function POST(request: NextRequest) {
     const teamMembersJson = teamMembers ? JSON.stringify(teamMembers) : null;
     const totalAmountNum = Number(totalAmount);
 
-    // Coupon: validate if code provided and compute discount
-    let discountNum = Number(discountFromBody) || 0;
+    // Coupon: discount is ONLY ever set from server-side DB lookup. Never use client-sent discount (closes loophole where no code is sent but discount is).
+    let discountNum = 0;
     let couponCodeToStore: string | null = null;
     if (couponCode && String(couponCode).trim()) {
       const code = String(couponCode).trim().toUpperCase();
@@ -93,11 +92,20 @@ export async function POST(request: NextRequest) {
             discountNum = Math.round((totalAmountNum * pct) / 100 * 100) / 100;
             couponCodeToStore = code;
           }
+        } else {
+          return NextResponse.json(
+            { error: 'The coupon code you used is no longer valid. Please remove it or use a different code.', field: 'couponCode' },
+            { status: 400 }
+          );
         }
       } catch (_) {
-        // coupons table may not exist; ignore and use discountFromBody or 0
+        return NextResponse.json(
+          { error: 'The coupon code could not be validated. Please remove it or try again.', field: 'couponCode' },
+          { status: 400 }
+        );
       }
     }
+    // Do NOT use discountFromBody — discount only from valid coupon above. Client cannot set discount by sending discount: X without a valid code.
     if (discountNum < 0) discountNum = 0;
     if (discountNum > totalAmountNum) discountNum = totalAmountNum;
 

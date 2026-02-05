@@ -312,7 +312,7 @@ export default function RegisterPage() {
     setCouponError('');
     setAppliedCoupon(null);
     try {
-      const res = await fetch(`/api/coupons/validate?code=${encodeURIComponent(code)}`, { cache: 'no-store' });
+      const res = await fetch(`/api/coupons/validate?code=${encodeURIComponent(code)}&_t=${Date.now()}`, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } });
       const data = await res.json();
       if (data.valid && data.discountPercent) {
         setAppliedCoupon({ code: code.toUpperCase(), discountPercent: data.discountPercent });
@@ -336,6 +336,28 @@ export default function RegisterPage() {
   };
 
   const handleSubmit = async () => {
+    // Re-validate coupon right before submit so deleted/inactive coupons don't show discount or get sent
+    if (appliedCoupon) {
+      try {
+        const res = await fetch(`/api/coupons/validate?code=${encodeURIComponent(appliedCoupon.code)}&_t=${Date.now()}`, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' } });
+        const data = await res.json();
+        if (!data.valid || !data.discountPercent) {
+          setAppliedCoupon(null);
+          setCouponInput('');
+          setCouponError(data.error || 'This coupon is no longer valid.');
+          alert(data.error || 'This coupon is no longer valid. Please remove it and try again.');
+          return;
+        }
+        setCouponError('');
+      } catch {
+        setAppliedCoupon(null);
+        setCouponInput('');
+        setCouponError('Could not validate coupon. Please remove it and try again.');
+        alert('Could not validate coupon. Please remove it and try again.');
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       const response = await fetch('/api/registrations', {
@@ -382,6 +404,12 @@ export default function RegisterPage() {
           setTeamNameError(data.error);
           setStep(1); // Go back to step 1 to fix team name
           alert('Team name already exists! Please go back and choose a different team name.');
+        } else if (data.field === 'couponCode') {
+          // Coupon no longer valid (e.g. deleted in admin) — clear it and show message
+          setAppliedCoupon(null);
+          setCouponInput('');
+          setCouponError(data.error || 'This coupon is no longer valid. Please remove it or use a different code.');
+          alert(data.error || 'This coupon is no longer valid. Please remove it and try again.');
         } else {
           alert('Registration failed: ' + data.error);
         }
