@@ -52,6 +52,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (paymentMethod === 'cash' && process.env.NEXT_PUBLIC_CASH_PAYMENT_ENABLED !== 'true') {
+      return NextResponse.json(
+        { error: 'Cash payment is currently disabled. Please use online payment.', field: 'paymentMethod' },
+        { status: 400 }
+      );
+    }
+
     // Check if team name is unique
     const existingTeam = await sql`
       SELECT id, team_name FROM registrations 
@@ -75,7 +82,8 @@ export async function POST(request: NextRequest) {
     const teamMembersJson = teamMembers ? JSON.stringify(teamMembers) : null;
     const totalAmountNum = Number(totalAmount);
 
-    // Coupon: discount is ONLY ever set from server-side DB lookup. Never use client-sent discount (closes loophole where no code is sent but discount is).
+    // Coupon: discount is ONLY ever set from server-side DB lookup. Coupon does not apply to "Swimming" — only to other games.
+    const GAME_EXCLUDED_FROM_COUPON = 'Swimming';
     let discountNum = 0;
     let couponCodeToStore: string | null = null;
     if (couponCode && String(couponCode).trim()) {
@@ -89,7 +97,22 @@ export async function POST(request: NextRequest) {
         if (couponRows && couponRows.length > 0) {
           const pct = Number(couponRows[0].discount_percent) || 0;
           if (pct > 0 && pct <= 100) {
-            discountNum = Math.round((totalAmountNum * pct) / 100 * 100) / 100;
+            // Amount eligible for discount = total minus Swimming (if selected)
+            const eligibleGames = (selectedGames as string[]).filter((g: string) => g !== GAME_EXCLUDED_FROM_COUPON);
+            let amountEligibleNum = 0;
+            if (eligibleGames.length > 0) {
+              try {
+                const placeholders = eligibleGames.map((_, i) => `$${i + 2}`).join(', ');
+                const sumRows = await sql(
+                  `SELECT COALESCE(SUM(price), 0)::float AS total FROM games_pricing WHERE gender = $1 AND game_name IN (${placeholders})`,
+                  [gender, ...eligibleGames]
+                ) as any[];
+                amountEligibleNum = Number(sumRows?.[0]?.total) || 0;
+              } catch (_) {
+                amountEligibleNum = 0; // do not apply discount if we cannot compute eligible amount
+              }
+            }
+            discountNum = Math.round((amountEligibleNum * pct) / 100 * 100) / 100;
             couponCodeToStore = code;
           }
         } else {
@@ -105,7 +128,6 @@ export async function POST(request: NextRequest) {
         );
       }
     }
-    // Do NOT use discountFromBody — discount only from valid coupon above. Client cannot set discount by sending discount: X without a valid code.
     if (discountNum < 0) discountNum = 0;
     if (discountNum > totalAmountNum) discountNum = totalAmountNum;
 

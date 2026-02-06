@@ -76,6 +76,8 @@ export default function RegisterPage() {
   const [couponError, setCouponError] = useState('');
   const [validatingCoupon, setValidatingCoupon] = useState(false);
 
+  const cashPaymentEnabled = process.env.NEXT_PUBLIC_CASH_PAYMENT_ENABLED === 'true';
+
   // Fetch games from database on mount
   useEffect(() => {
     const fetchGames = async () => {
@@ -144,6 +146,13 @@ export default function RegisterPage() {
       setSportGroups([]);
     }
   }, [formData.gender, allGames]);
+
+  // When cash is disabled, ensure Online is selected on payment step
+  useEffect(() => {
+    if (step === 3 && !cashPaymentEnabled && formData.paymentMethod !== 'online') {
+      setFormData((prev) => ({ ...prev, paymentMethod: 'online' }));
+    }
+  }, [step, cashPaymentEnabled, formData.paymentMethod]);
 
   // Fetch sport groups for selected games
   useEffect(() => {
@@ -297,8 +306,14 @@ export default function RegisterPage() {
     ? calculateTotal(formData.selectedGames, formData.gender)
     : 0;
 
-  const discountAmount = appliedCoupon && totalAmount > 0
-    ? Math.round((totalAmount * appliedCoupon.discountPercent) / 100 * 100) / 100
+  // Coupon does not apply to "Swimming" — discount only on amount from other games
+  const GAME_EXCLUDED_FROM_COUPON = 'Swimming';
+  const swimmingPrice = formData.gender && formData.selectedGames.includes(GAME_EXCLUDED_FROM_COUPON)
+    ? (getGamePrice(GAME_EXCLUDED_FROM_COUPON, formData.gender) ?? 0)
+    : 0;
+  const amountEligibleForDiscount = Math.max(0, totalAmount - swimmingPrice);
+  const discountAmount = appliedCoupon && amountEligibleForDiscount > 0
+    ? Math.round((amountEligibleForDiscount * appliedCoupon.discountPercent) / 100 * 100) / 100
     : 0;
   const finalAmount = totalAmount - discountAmount;
 
@@ -438,6 +453,9 @@ export default function RegisterPage() {
       return formData.selectedGames.length > 0;
     }
     if (step === 3) {
+      if (!cashPaymentEnabled) {
+        return formData.paymentMethod === 'online' && !!(formData.transactionId && formData.screenshotUrl);
+      }
       return formData.paymentMethod && (formData.paymentMethod === 'cash' || (formData.transactionId && formData.screenshotUrl));
     }
     return true;
@@ -794,6 +812,9 @@ export default function RegisterPage() {
                         <span>Coupon {appliedCoupon.code} ({appliedCoupon.discountPercent}% off):</span>
                         <span>- Rs. {discountAmount.toLocaleString()}</span>
                       </div>
+                      {formData.selectedGames.includes(GAME_EXCLUDED_FROM_COUPON) && (
+                        <p className="mt-1 text-xs text-slate-600">Discount does not apply to Swimming.</p>
+                      )}
                       <div className="mt-2 flex items-center justify-between border-t border-blue-200 pt-2">
                         <span className="font-semibold">Amount to pay:</span>
                         <span className="text-xl font-bold text-blue-800">Rs. {finalAmount.toLocaleString()}</span>
@@ -946,36 +967,38 @@ export default function RegisterPage() {
                     )}
                   </div>
 
-                  <div
-                    className={`p-3 sm:p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                      formData.paymentMethod === 'cash'
-                        ? 'border-blue-600 bg-blue-50 shadow-md'
-                        : 'border-gray-200 hover:border-blue-300'
-                    }`}
-                    onClick={() => handleInputChange('paymentMethod', 'cash')}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <input
-                        type="radio"
-                        checked={formData.paymentMethod === 'cash'}
-                        onChange={() => handleInputChange('paymentMethod', 'cash')}
-                      />
-                      <span className="font-semibold">Cash Payment</span>
-                    </div>
-                    {formData.paymentMethod === 'cash' && (
-                      <div className="mt-4">
-                        <p className="text-xs sm:text-sm text-gray-700 mb-2">
-                          Cash registration requires payment at the FCIT Sports Society desk.
-                        </p>
-                        <p className="text-xs sm:text-sm text-gray-600">
-                          Status: <span className="font-semibold">Will Confirm Soon</span>
-                        </p>
-                        <p className="text-xs sm:text-sm text-gray-500 mt-2">
-                          A cash slip ID will be generated after submission.
-                        </p>
+                  {cashPaymentEnabled && (
+                    <div
+                      className={`p-3 sm:p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                        formData.paymentMethod === 'cash'
+                          ? 'border-blue-600 bg-blue-50 shadow-md'
+                          : 'border-gray-200 hover:border-blue-300'
+                      }`}
+                      onClick={() => handleInputChange('paymentMethod', 'cash')}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <input
+                          type="radio"
+                          checked={formData.paymentMethod === 'cash'}
+                          onChange={() => handleInputChange('paymentMethod', 'cash')}
+                        />
+                        <span className="font-semibold">Cash Payment</span>
                       </div>
-                    )}
-                  </div>
+                      {formData.paymentMethod === 'cash' && (
+                        <div className="mt-4">
+                          <p className="text-xs sm:text-sm text-gray-700 mb-2">
+                            Cash registration requires payment at the FCIT Sports Society desk.
+                          </p>
+                          <p className="text-xs sm:text-sm text-gray-600">
+                            Status: <span className="font-semibold">Will Confirm Soon</span>
+                          </p>
+                          <p className="text-xs sm:text-sm text-gray-500 mt-2">
+                            A cash slip ID will be generated after submission.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1057,6 +1080,9 @@ export default function RegisterPage() {
                           <span>Coupon {appliedCoupon.code} ({appliedCoupon.discountPercent}% off)</span>
                           <span>- Rs. {discountAmount.toLocaleString()}</span>
                         </div>
+                        {formData.selectedGames.includes(GAME_EXCLUDED_FROM_COUPON) && (
+                          <p className="text-xs text-slate-500">Discount does not apply to Swimming.</p>
+                        )}
                         <div className="flex justify-between items-center pt-1 border-t">
                           <p className="text-xs sm:text-sm text-gray-600 font-medium">Total Amount</p>
                           <p className="text-xl sm:text-2xl font-bold text-green-600">
