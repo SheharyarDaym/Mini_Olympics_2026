@@ -27,6 +27,17 @@ function escapeHtml(s: string): string {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+
+    // Check if registrations are open (admin can turn off via Settings)
+    const regOpenRows = await sql`SELECT value FROM system_settings WHERE key = 'registrations_open' LIMIT 1` as any[];
+    const regOpenValue = regOpenRows?.[0]?.value;
+    if (regOpenValue === 'false' || regOpenValue === '0') {
+      return NextResponse.json(
+        { error: 'Registrations are currently closed. For any questions, please contact sports.oc@pucit.edu.pk', code: 'REGISTRATIONS_CLOSED' },
+        { status: 503 }
+      );
+    }
+
     const {
       email,
       name,

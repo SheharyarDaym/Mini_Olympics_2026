@@ -38,6 +38,8 @@ import {
   Server,
   Send,
   Tag,
+  Lock,
+  Unlock,
 } from 'lucide-react';
 
 type GamePricing = {
@@ -64,7 +66,9 @@ export default function SettingsPage() {
     smtp_email: '',
     smtp_password: '',
     smtp_from_name: 'FCIT Sports Society',
+    registrations_open: true,
   });
+  const [savingRegistrations, setSavingRegistrations] = useState(false);
   // Defaults must match lib/email.ts so "what you see = what gets sent" until you save custom templates
   const [emailTemplates, setEmailTemplates] = useState({
     email_registration_submitted_online_subject: 'Mini Olympics 2026 Registration',
@@ -163,6 +167,7 @@ export default function SettingsPage() {
           smtp_email: d.smtp_email || '',
           smtp_password: d.smtp_password || '',
           smtp_from_name: d.smtp_from_name || 'FCIT Sports Society',
+          registrations_open: d.registrations_open !== 'false' && d.registrations_open !== '0',
         });
         setEmailTemplates(prev => ({
           email_registration_submitted_online_subject: d.email_registration_submitted_online_subject !== undefined ? d.email_registration_submitted_online_subject : prev.email_registration_submitted_online_subject,
@@ -497,6 +502,76 @@ export default function SettingsPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
+        {/* Registrations open/closed */}
+        <Card className="border-0 shadow-lg lg:col-span-2">
+          <CardHeader className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-t-lg">
+            <CardTitle className="flex items-center gap-2">
+              {settings.registrations_open ? <Unlock className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
+              Registrations
+            </CardTitle>
+            <CardDescription className="text-emerald-100">
+              When off, the public registration form shows a &quot;Registrations are closed&quot; message and no new submissions are accepted.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="font-medium text-slate-800">Accept new registrations</p>
+                <p className="text-sm text-slate-500 mt-0.5">
+                  {settings.registrations_open ? 'Registration form is live and accepting submissions.' : 'Registration form is closed; visitors see a message to contact sports.oc@pucit.edu.pk'}
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={settings.registrations_open}
+                onClick={async () => {
+                  const next = !settings.registrations_open;
+                  setSavingRegistrations(true);
+                  try {
+                    const res = await fetch('/api/admin/settings', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ key: 'registrations_open', value: next ? 'true' : 'false' }),
+                    });
+                    if (res.ok) {
+                      setSettings(prev => ({ ...prev, registrations_open: next }));
+                    } else {
+                      alert('Failed to update setting');
+                    }
+                  } catch {
+                    alert('Failed to update setting');
+                  } finally {
+                    setSavingRegistrations(false);
+                  }
+                }}
+                disabled={savingRegistrations}
+                className={`
+                  relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent
+                  transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                  ${settings.registrations_open ? 'bg-emerald-500' : 'bg-slate-300'}
+                `}
+              >
+                <span
+                  className={`
+                    pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0
+                    transition duration-200 ease-in-out
+                    ${settings.registrations_open ? 'translate-x-5' : 'translate-x-1'}
+                  `}
+                  aria-hidden="true"
+                />
+              </button>
+            </div>
+            {savingRegistrations && (
+              <p className="text-sm text-slate-500 mt-3 flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving…
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
         {/* SMTP Email Settings */}
         <Card className="border-0 shadow-lg lg:col-span-2">
           <CardHeader className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-t-lg">

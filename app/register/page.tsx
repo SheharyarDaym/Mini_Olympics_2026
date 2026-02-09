@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { CheckCircle2, Circle, DollarSign, X, Copy, ExternalLink, Users, MessageCircle, Tag } from 'lucide-react';
+import { CheckCircle2, Circle, DollarSign, X, Copy, ExternalLink, Users, MessageCircle, Tag, Lock, Mail } from 'lucide-react';
 import Link from 'next/link';
 import { gamesPricing as defaultGamesPricing, getAvailableGames as defaultGetAvailableGames, isTeamGame as defaultIsTeamGame, getRequiredPlayers as defaultGetRequiredPlayers } from '@/lib/games-pricing';
 
@@ -75,8 +75,23 @@ export default function RegisterPage() {
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountPercent: number } | null>(null);
   const [couponError, setCouponError] = useState('');
   const [validatingCoupon, setValidatingCoupon] = useState(false);
+  const [registrationOpen, setRegistrationOpen] = useState<boolean | null>(null);
 
   const cashPaymentEnabled = process.env.NEXT_PUBLIC_CASH_PAYMENT_ENABLED === 'true';
+
+  // Fetch whether registrations are open
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const res = await fetch('/api/public/registration-status', { cache: 'no-store' });
+        const data = await res.json();
+        setRegistrationOpen(data.success && data.open === true);
+      } catch {
+        setRegistrationOpen(true);
+      }
+    };
+    fetchStatus();
+  }, []);
 
   // Fetch games from database on mount
   useEffect(() => {
@@ -460,6 +475,76 @@ export default function RegisterPage() {
     }
     return true;
   };
+
+  // Loading registration status
+  if (registrationOpen === null) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-4 sm:py-12">
+        <div className="container mx-auto px-4 max-w-4xl">
+          <div className="mb-4 sm:mb-8">
+            <Link href="/" className="text-blue-600 hover:underline text-sm sm:text-base">
+              ← Back to Home
+            </Link>
+          </div>
+          <Card className="shadow-2xl border-0 overflow-hidden">
+            <CardContent className="p-12 flex flex-col items-center justify-center min-h-[280px]">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-4" />
+              <p className="text-slate-600">Checking registration status…</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Registrations closed
+  if (registrationOpen === false) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-4 sm:py-12">
+        <div className="container mx-auto px-4 max-w-4xl">
+          <div className="mb-4 sm:mb-8">
+            <Link href="/" className="text-blue-600 hover:underline text-sm sm:text-base">
+              ← Back to Home
+            </Link>
+          </div>
+          <Card className="shadow-2xl border-0 overflow-hidden">
+            <div className="h-1 bg-gradient-to-r from-slate-500 to-slate-600" />
+            <CardHeader className="bg-gradient-to-r from-slate-700 via-slate-800 to-slate-900 text-white p-8 sm:p-10 text-center">
+              <div className="mx-auto w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mb-4">
+                <Lock className="h-8 w-8 text-white" />
+              </div>
+              <CardTitle className="text-2xl sm:text-3xl font-extrabold">Registrations are closed</CardTitle>
+              <CardDescription className="text-slate-200 text-base sm:text-lg mt-3 max-w-xl mx-auto">
+                We are not accepting new registrations at the moment. For any questions or updates, please reach out to us.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-8 sm:p-10">
+              <div className="text-center space-y-6 max-w-md mx-auto">
+                <p className="text-slate-600">
+                  Direct your queries to:
+                </p>
+                <a
+                  href="mailto:sports.oc@pucit.edu.pk"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-800 text-white font-semibold hover:bg-slate-700 transition-colors"
+                >
+                  <Mail className="h-5 w-5" />
+                  sports.oc@pucit.edu.pk
+                </a>
+                <p className="text-sm text-slate-500">
+                  We will get back to you as soon as possible.
+                </p>
+                <Link href="/">
+                  <Button variant="outline" className="mt-4">
+                    ← Back to Home
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-4 sm:py-12">
